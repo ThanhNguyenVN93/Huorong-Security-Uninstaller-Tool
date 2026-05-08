@@ -79,6 +79,9 @@
     <Compile Include="Form4.Designer.cs">
       <DependentUpon>Form4.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="Form4.resx">
+      <DependentUpon>Form4.cs</DependentUpon>
+    </EmbeddedResource>
     <Compile Include="LangManager.cs" />
     <Compile Include="PrivilegeHelper.cs" />
     <Compile Include="Program.cs" />
