@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HIS Uninstaller Tool — Cấu hình ngoài
+  Chỉnh sửa file này để cập nhật danh sách đường dẫn / từ khoá
+  khi Huorong thay đổi tên file hoặc registry key mà KHÔNG cần biên dịch lại.
+
+  Hỗ trợ biến môi trường: %LOCALAPPDATA%, %APPDATA%, %WINDIR%, %PROGRAMFILES%, v.v.
+-->
+<CleanupConfig>
+
+  <!-- Thư mục / file cần quét và xóa -->
+  <FileScanRoots>
+    <Path>%PROGRAMFILES%\Huorong</Path>
+    <Path>%PROGRAMFILES(X86)%\Huorong</Path>
+    <Path>%PROGRAMDATA%\Huorong</Path>
+    <Path>%PROGRAMDATA%\HuorongSysdiag</Path>
+    <Path>%LOCALAPPDATA%\Huorong</Path>
+    <Path>%APPDATA%\Huorong</Path>
+    <Path>%WINDIR%\System32\drivers\sysdiag.sys</Path>
+    <Path>%WINDIR%\SysWOW64\drivers\sysdiag.sys</Path>
+  </FileScanRoots>
+
+  <!-- Thư mục DriverStore cần quét (lọc theo RegistryKeywords) -->
+  <DriverStoreRoots>
+    <Path>%WINDIR%\System32\DriverStore\FileRepository</Path>
+    <Path>%WINDIR%\SysWOW64\DriverStore\FileRepository</Path>
+  </DriverStoreRoots>
+
+  <!-- Từ khoá dùng để nhận dạng các mục liên quan Huorong -->
+  <RegistryKeywords>
+    <Keyword>Huorong</Keyword>
+    <Keyword>HuorongSysdiag</Keyword>
+    <Keyword>Sysdiag</Keyword>
+    <Keyword>HipsDaemon</Keyword>
+    <Keyword>HipsMain</Keyword>
+    <Keyword>HipsSvc</Keyword>
+    <Keyword>HipsFilter</Keyword>
+    <Keyword>HuorongAV</Keyword>
+    <Keyword>火绒</Keyword>
+  </RegistryKeywords>
+
+  <!-- Tên service / driver cần dừng trước khi xóa file -->
+  <HuorongServices>
+    <Service>sysdiag</Service>
+    <Service>HipsDaemon</Service>
+    <Service>HipsMain</Service>
+    <Service>HipsSvc</Service>
+    <Service>HipsFilter</Service>
+    <Service>HuorongAV</Service>
+    <Service>HuorongAgent</Service>
+  </HuorongServices>
+
+  <!-- Registry key cố định cần quét (Form2) -->
+  <FixedScanPaths>
+    <Path>SOFTWARE\Huorong</Path>
+    <Path>SOFTWARE\WOW6432Node\Huorong</Path>
+    <Path>SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\HuorongSysdiag</Path>
+    <Path>SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\HuorongSysdiag</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\sysdiag</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HipsDaemon</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HipsMain</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HipsSvc</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HipsFilter</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HuorongAV</Path>
+    <Path>SYSTEM\CurrentControlSet\Services\HuorongAgent</Path>
+    <Path>SOFTWARE\Microsoft\Windows\CurrentVersion\Run</Path>
+    <Path>SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce</Path>
+  </FixedScanPaths>
+
+  <!-- Tên driver legacy entry cần tìm trong Enum\Root -->
+  <LegacyDriverKeywords>
+    <Keyword>LEGACY_SYSDIAG</Keyword>
+    <Keyword>LEGACY_HRWFPDRV</Keyword>
+    <Keyword>LEGACY_HIPSDAEMON</Keyword>
+    <Keyword>LEGACY_HIPSMAIN</Keyword>
+    <Keyword>LEGACY_HIPSSVC</Keyword>
+    <Keyword>LEGACY_HIPSFILTER</Keyword>
+  </LegacyDriverKeywords>
+
+  <!-- Nhánh Services cần quét động -->
+  <DynamicServiceRoots>
+    <Path>SYSTEM\CurrentControlSet\Services</Path>
+    <Path>SYSTEM\ControlSet001\Services</Path>
+    <Path>SYSTEM\ControlSet002\Services</Path>
+  </DynamicServiceRoots>
+
+  <!-- Nhánh Enum\Root cần quét -->
+  <EnumRootPaths>
+    <Path>SYSTEM\CurrentControlSet\Enum\Root</Path>
+    <Path>SYSTEM\ControlSet001\Enum\Root</Path>
+    <Path>SYSTEM\ControlSet002\Enum\Root</Path>
+  </EnumRootPaths>
+
+  <!-- Nhánh cần quét data value (REG_BINARY / REG_SZ chứa "Huorong") -->
+  <DataScanRoots>
+    <Path>HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\BagMRU</Path>
+    <Path>HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths</Path>
+    <Path>HKLM\SOFTWARE\Microsoft\Windows Search\CrawlScopeManager</Path>
+    <Path>HKLM\SYSTEM\CurrentControlSet\Control\Session Manager</Path>
+    <Path>HKLM\SYSTEM\ControlSet001\Control\Session Manager</Path>
+    <Path>HKLM\SYSTEM\ControlSet002\Control\Session Manager</Path>
+  </DataScanRoots>
+
+  <!-- Nhánh registry cần backup toàn bộ trước khi xóa -->
+  <CriticalBackupPaths>
+    <Path>HKLM\SYSTEM\CurrentControlSet\Services</Path>
+    <Path>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion</Path>
+  </CriticalBackupPaths>
+
+  <!-- Phạm vi quét trong Form3 Deep Scan -->
+  <DeepScanScopes>
+    <Scope>HKLM\SOFTWARE</Scope>
+    <Scope>HKLM\SYSTEM</Scope>
+    <Scope>HKCU\SOFTWARE</Scope>
+  </DeepScanScopes>
+
+  <!-- Từ khoá tìm kiếm trong data value (Form3) -->
+  <DeepScanTerms>
+    <Term>Huorong</Term>
+    <Term>火绒</Term>
+  </DeepScanTerms>
+
+</CleanupConfig>

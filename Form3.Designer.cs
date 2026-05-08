@@ -23,8 +23,10 @@ namespace frm_HIS_uninstaller_tool
             this.progressDeep = new System.Windows.Forms.ProgressBar();
             this.btnUncheckAll = new System.Windows.Forms.Button();
             this.btnCheckAll = new System.Windows.Forms.Button();
+            this.btnStopScan = new System.Windows.Forms.Button();
             this.btnDeepScan = new System.Windows.Forms.Button();
             this.lstDeepScan = new System.Windows.Forms.ListView();
+            this.colDRisk = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colDKey = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colDName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.colDType = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -82,6 +84,7 @@ namespace frm_HIS_uninstaller_tool
             this.pnlToolbar.Controls.Add(this.progressDeep);
             this.pnlToolbar.Controls.Add(this.btnUncheckAll);
             this.pnlToolbar.Controls.Add(this.btnCheckAll);
+            this.pnlToolbar.Controls.Add(this.btnStopScan);
             this.pnlToolbar.Controls.Add(this.btnDeepScan);
             this.pnlToolbar.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlToolbar.Location = new System.Drawing.Point(0, 60);
@@ -91,55 +94,71 @@ namespace frm_HIS_uninstaller_tool
             this.pnlToolbar.TabIndex = 2;
             // 
             // lblDeepCount
-            // 
+            //
             this.lblDeepCount.AutoSize = true;
             this.lblDeepCount.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDeepCount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.lblDeepCount.Location = new System.Drawing.Point(564, 14);
+            this.lblDeepCount.Location = new System.Drawing.Point(658, 14);
             this.lblDeepCount.Name = "lblDeepCount";
             this.lblDeepCount.Size = new System.Drawing.Size(62, 15);
             this.lblDeepCount.TabIndex = 0;
             this.lblDeepCount.Text = "Chưa quét";
             // 
             // progressDeep
-            // 
-            this.progressDeep.Location = new System.Drawing.Point(356, 12);
+            //
+            this.progressDeep.Location = new System.Drawing.Point(450, 12);
             this.progressDeep.MarqueeAnimationSpeed = 20;
             this.progressDeep.Name = "progressDeep";
             this.progressDeep.Size = new System.Drawing.Size(200, 22);
             this.progressDeep.TabIndex = 1;
             // 
             // btnUncheckAll
-            // 
+            //
             this.btnUncheckAll.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(100)))), ((int)(((byte)(100)))));
             this.btnUncheckAll.Enabled = false;
             this.btnUncheckAll.FlatAppearance.BorderSize = 0;
             this.btnUncheckAll.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnUncheckAll.Font = new System.Drawing.Font("Segoe UI", 8.5F);
             this.btnUncheckAll.ForeColor = System.Drawing.Color.White;
-            this.btnUncheckAll.Location = new System.Drawing.Point(246, 8);
+            this.btnUncheckAll.Location = new System.Drawing.Point(342, 8);
             this.btnUncheckAll.Name = "btnUncheckAll";
             this.btnUncheckAll.Size = new System.Drawing.Size(100, 30);
             this.btnUncheckAll.TabIndex = 2;
             this.btnUncheckAll.Text = "✘ Bỏ chọn tất";
             this.btnUncheckAll.UseVisualStyleBackColor = false;
             this.btnUncheckAll.Click += new System.EventHandler(this.btnUncheckAll_Click);
-            // 
+            //
             // btnCheckAll
-            // 
+            //
             this.btnCheckAll.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(120)))), ((int)(((byte)(80)))));
             this.btnCheckAll.Enabled = false;
             this.btnCheckAll.FlatAppearance.BorderSize = 0;
             this.btnCheckAll.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCheckAll.Font = new System.Drawing.Font("Segoe UI", 8.5F);
             this.btnCheckAll.ForeColor = System.Drawing.Color.White;
-            this.btnCheckAll.Location = new System.Drawing.Point(148, 8);
+            this.btnCheckAll.Location = new System.Drawing.Point(244, 8);
             this.btnCheckAll.Name = "btnCheckAll";
             this.btnCheckAll.Size = new System.Drawing.Size(90, 30);
             this.btnCheckAll.TabIndex = 3;
             this.btnCheckAll.Text = "✔ Chọn tất cả";
             this.btnCheckAll.UseVisualStyleBackColor = false;
             this.btnCheckAll.Click += new System.EventHandler(this.btnCheckAll_Click);
+            //
+            // btnStopScan
+            //
+            this.btnStopScan.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(160)))), ((int)(((byte)(50)))), ((int)(((byte)(30)))));
+            this.btnStopScan.Enabled = false;
+            this.btnStopScan.FlatAppearance.BorderSize = 0;
+            this.btnStopScan.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnStopScan.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.btnStopScan.ForeColor = System.Drawing.Color.White;
+            this.btnStopScan.Location = new System.Drawing.Point(146, 8);
+            this.btnStopScan.Name = "btnStopScan";
+            this.btnStopScan.Size = new System.Drawing.Size(90, 30);
+            this.btnStopScan.TabIndex = 5;
+            this.btnStopScan.Text = "■ Dừng";
+            this.btnStopScan.UseVisualStyleBackColor = false;
+            this.btnStopScan.Click += new System.EventHandler(this.btnStopScan_Click);
             // 
             // btnDeepScan
             // 
@@ -161,6 +180,7 @@ namespace frm_HIS_uninstaller_tool
             this.lstDeepScan.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lstDeepScan.CheckBoxes = true;
             this.lstDeepScan.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.colDRisk,
             this.colDKey,
             this.colDName,
             this.colDType,
@@ -177,25 +197,34 @@ namespace frm_HIS_uninstaller_tool
             this.lstDeepScan.UseCompatibleStateImageBehavior = false;
             this.lstDeepScan.View = System.Windows.Forms.View.Details;
             // 
+            //
+            // colDRisk
+            //
+            this.colDRisk.Text = "Mức độ";
+            this.colDRisk.Width = 80;
+            //
             // colDKey
-            // 
+            //
             this.colDKey.Text = "Registry Key";
-            this.colDKey.Width = 320;
+            this.colDKey.Width = 260;
             // 
+            //
             // colDName
-            // 
+            //
             this.colDName.Text = "Value Name";
-            this.colDName.Width = 160;
+            this.colDName.Width = 140;
             // 
+            //
             // colDType
-            // 
+            //
             this.colDType.Text = "Type";
-            this.colDType.Width = 90;
+            this.colDType.Width = 80;
             // 
+            //
             // colDData
-            // 
+            //
             this.colDData.Text = "Data (chứa Huorong)";
-            this.colDData.Width = 320;
+            this.colDData.Width = 290;
             // 
             // pnlBottom
             // 
@@ -303,11 +332,11 @@ namespace frm_HIS_uninstaller_tool
         private System.Windows.Forms.Panel       pnlHeader;
         private System.Windows.Forms.Label       lblTitle3, lblSubtitle3;
         private System.Windows.Forms.Panel       pnlToolbar;
-        private System.Windows.Forms.Button      btnDeepScan, btnCheckAll, btnUncheckAll;
+        private System.Windows.Forms.Button      btnDeepScan, btnStopScan, btnCheckAll, btnUncheckAll;
         private System.Windows.Forms.ProgressBar progressDeep;
         private System.Windows.Forms.Label       lblDeepCount;
         private System.Windows.Forms.ListView    lstDeepScan;
-        private System.Windows.Forms.ColumnHeader colDKey, colDName, colDType, colDData;
+        private System.Windows.Forms.ColumnHeader colDRisk, colDKey, colDName, colDType, colDData;
         private System.Windows.Forms.Panel       pnlBottom, pnlBtnBar;
         private System.Windows.Forms.RichTextBox txtDeepLog;
         private System.Windows.Forms.Button      btnDeleteDeep, btnCloseDeep;

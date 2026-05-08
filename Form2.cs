@@ -12,92 +12,17 @@ namespace frm_HIS_uninstaller_tool
 {
     public partial class Form2 : Form
     {
-        // ── Thư mục cần quét file thừa ───────────────────────────────────
-        private static readonly string[] FileScanRoots = {
-            @"C:\Program Files\Huorong",
-            @"C:\Program Files (x86)\Huorong",
-            @"C:\ProgramData\Huorong",
-            @"C:\ProgramData\HuorongSysdiag",
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Huorong"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Huorong"),
-            @"C:\Windows\System32\drivers\sysdiag.sys",
-            @"C:\Windows\SysWOW64\drivers\sysdiag.sys",
-        };
+        // Byte pattern của "Huorong" — ASCII và UTF-16LE
+        private static readonly byte[] HuorongAscii = { 0x48, 0x75, 0x6F, 0x72, 0x6F, 0x6E, 0x67 };
+        private static readonly byte[] HuorongUtf16 = { 0x48,0x00,0x75,0x00,0x6F,0x00,0x72,0x00,0x6F,0x00,0x6E,0x00,0x67,0x00 };
 
-        // ── Từ khoá registry cần quét ─────────────────────────────────────
-        private static readonly string[] RegistryKeywords = {
-            "Huorong", "HuorongSysdiag", "Sysdiag", "HipsDaemon", "HipsMain",
-            "HipsSvc", "HipsFilter", "HuorongAV", "火绒"
-        };
-
-        // Các hive gốc để tìm kiếm
+        // Hive gốc để duyệt
         private static readonly (RegistryKey Hive, string HiveName)[] RegistryHives = {
-            (Registry.LocalMachine, @"HKLM"),
-            (Registry.CurrentUser,  @"HKCU"),
+            (Registry.LocalMachine, "HKLM"),
+            (Registry.CurrentUser,  "HKCU"),
         };
 
-        // Các đường dẫn cố định cần quét (key hoặc Run-value)
-        private static readonly string[] FixedScanPaths = {
-            @"SOFTWARE\Huorong",
-            @"SOFTWARE\WOW6432Node\Huorong",
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\HuorongSysdiag",
-            @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\HuorongSysdiag",
-            @"SYSTEM\CurrentControlSet\Services\sysdiag",
-            @"SYSTEM\CurrentControlSet\Services\HipsDaemon",
-            @"SYSTEM\CurrentControlSet\Services\HipsMain",
-            @"SYSTEM\CurrentControlSet\Services\HipsSvc",
-            @"SYSTEM\CurrentControlSet\Services\HipsFilter",
-            @"SYSTEM\CurrentControlSet\Services\HuorongAV",
-            @"SYSTEM\CurrentControlSet\Services\HuorongAgent",
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",   // filter by value name
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce", // filter by value name
-        };
-
-        // Các Services sub-paths cần quét động để tìm thêm key còn sót
-        private static readonly string[] DynamicServiceRoots = {
-            @"SYSTEM\CurrentControlSet\Services",
-            @"SYSTEM\ControlSet001\Services",
-            @"SYSTEM\ControlSet002\Services",
-        };
-
-        // Driver device entries (Enum\Root\LEGACY_*) — không có tên "Huorong" nhưng là driver còn sót
-        private static readonly string[] LegacyDriverKeywords = {
-            "LEGACY_SYSDIAG", "LEGACY_HRWFPDRV", "LEGACY_HIPSDAEMON",
-            "LEGACY_HIPSMAIN", "LEGACY_HIPSSVC", "LEGACY_HIPSFILTER",
-        };
-
-        // Gốc Enum\Root cần quét theo ControlSet
-        private static readonly string[] EnumRootPaths = {
-            @"SYSTEM\CurrentControlSet\Enum\Root",
-            @"SYSTEM\ControlSet001\Enum\Root",
-            @"SYSTEM\ControlSet002\Enum\Root",
-        };
-
-        // Các path chứa data value (REG_BINARY / REG_SZ) có liên quan Huorong
-        private static readonly string[] DataScanRoots = {
-            @"HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\BagMRU",
-            @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths",
-            @"HKLM\SOFTWARE\Microsoft\Windows Search\CrawlScopeManager",
-            @"HKLM\SYSTEM\CurrentControlSet\Control\Session Manager",
-            @"HKLM\SYSTEM\ControlSet001\Control\Session Manager",
-            @"HKLM\SYSTEM\ControlSet002\Control\Session Manager",
-        };
-
-        // "Huorong" ASCII: H u o r o n g
-        private static readonly byte[] HuorongAscii  = { 0x48, 0x75, 0x6F, 0x72, 0x6F, 0x6E, 0x67 };
-        // "Huorong" UTF-16LE
-        private static readonly byte[] HuorongUtf16  = { 0x48,0x00,0x75,0x00,0x6F,0x00,0x72,0x00,0x6F,0x00,0x6E,0x00,0x67,0x00 };
-
-        // Registry key quan trọng của hệ thống cần backup trước khi xóa
-        private static readonly string[] CriticalBackupPaths = {
-            @"HKLM\SYSTEM\CurrentControlSet\Services",
-            @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
-        };
-
-        public Form2()
-        {
-            InitializeComponent();
-        }
+        public Form2() => InitializeComponent();
 
         private void Form2_Load(object sender, EventArgs e)
         {
@@ -109,7 +34,6 @@ namespace frm_HIS_uninstaller_tool
 
         private static void DeleteStartupTask()
         {
-            // Xóa scheduled task
             try
             {
                 var psi = new ProcessStartInfo
@@ -117,18 +41,49 @@ namespace frm_HIS_uninstaller_tool
                     FileName = "schtasks.exe",
                     Arguments = "/Delete /TN \"HuorongCleanupTool\" /F",
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow  = true,
                 };
                 Process.Start(psi)?.WaitForExit(5000);
             }
             catch { }
-
-            // Xóa fallback RunOnce key (nếu đã ghi)
             try
             {
                 using (RegistryKey key = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce", writable: true))
                     key?.DeleteValue("HuorongCleanupTool", throwOnMissingValue: false);
+            }
+            catch { }
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  DỪNG SERVICE / DRIVER TRƯỚC KHI XÓA FILE
+        // ─────────────────────────────────────────────────────────────────
+
+        private void StopHuorongServices()
+        {
+            string[] services = CleanupConfig.Instance.HuorongServices;
+            Log("[*] Đang dừng các service / driver của Huorong...");
+
+            foreach (string svc in services)
+            {
+                RunSc("stop",   svc);
+                RunSc("delete", svc);
+                Log($"    [sc] stop + delete: {svc}");
+            }
+        }
+
+        private static void RunSc(string verb, string serviceName)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName  = "sc.exe",
+                    Arguments = $"{verb} \"{serviceName}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow  = true,
+                };
+                Process.Start(psi)?.WaitForExit(5000);
             }
             catch { }
         }
@@ -146,67 +101,104 @@ namespace frm_HIS_uninstaller_tool
             Log("Đang quét file/thư mục...");
             int count = 0;
 
-            foreach (string path in FileScanRoots)
+            // 1. Các đường dẫn cố định từ config
+            foreach (string path in CleanupConfig.Instance.FileScanRoots)
             {
-                // Kiểm tra thư mục
                 if (Directory.Exists(path))
                 {
                     AddFileItem(path, isDirectory: true);
                     count++;
-
-                    // Liệt kê file con (1 cấp) để người dùng xem rõ
                     try
                     {
                         foreach (string f in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                        {
-                            AddFileItem(f, isDirectory: false);
-                            count++;
-                        }
+                        { AddFileItem(f, isDirectory: false); count++; }
                     }
                     catch { }
                 }
                 else if (File.Exists(path))
-                {
-                    AddFileItem(path, isDirectory: false);
-                    count++;
-                }
+                { AddFileItem(path, isDirectory: false); count++; }
             }
+
+            // 2. Quét DriverStore\FileRepository — lọc theo keyword
+            count += ScanDriverStore();
 
             lblFilesCount.Text = $"{count} mục tìm thấy";
             if (count > 0) btnDeleteFiles.Enabled = true;
             Log($"Quét file xong: {count} mục.");
         }
 
+        /// <summary>
+        /// Tìm các thư mục trong DriverStore\FileRepository có tên chứa từ khoá Huorong.
+        /// Đây là nơi Windows lưu bản sao driver mà uninstaller thường bỏ sót.
+        /// </summary>
+        private int ScanDriverStore()
+        {
+            int found = 0;
+            string[] keywords = CleanupConfig.Instance.RegistryKeywords;
+
+            foreach (string driverStoreRoot in CleanupConfig.Instance.DriverStoreRoots)
+            {
+                if (!Directory.Exists(driverStoreRoot)) continue;
+
+                try
+                {
+                    foreach (string subDir in Directory.GetDirectories(driverStoreRoot))
+                    {
+                        string dirName = Path.GetFileName(subDir);
+                        bool match = false;
+                        foreach (string kw in keywords)
+                            if (dirName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+                            { match = true; break; }
+
+                        if (!match) continue;
+
+                        AddFileItem(subDir, isDirectory: true);
+                        found++;
+                        try
+                        {
+                            foreach (string f in Directory.GetFiles(subDir, "*", SearchOption.AllDirectories))
+                            { AddFileItem(f, isDirectory: false); found++; }
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+
+            if (found > 0) Log($"[*] DriverStore: {found} mục liên quan Huorong.");
+            return found;
+        }
+
         private void AddFileItem(string path, bool isDirectory)
         {
-            string name = isDirectory ? Path.GetFileName(path) + "\\" : Path.GetFileName(path);
+            string name = isDirectory
+                ? "[Thư mục] " + Path.GetFileName(path) + "\\"
+                : Path.GetFileName(path);
+
             string size = "";
             if (!isDirectory)
             {
                 try
                 {
                     long bytes = new FileInfo(path).Length;
-                    size = bytes < 1024 ? $"{bytes} B"
-                         : bytes < 1024 * 1024 ? $"{bytes / 1024} KB"
-                         : $"{bytes / 1024 / 1024} MB";
+                    size = bytes < 1024          ? $"{bytes} B"
+                         : bytes < 1024 * 1024   ? $"{bytes / 1024} KB"
+                                                 : $"{bytes / 1024 / 1024} MB";
                 }
                 catch { size = "?"; }
             }
-            else
-            {
-                name = "[Thư mục] " + name;
-            }
 
             var item = new ListViewItem(new[] { name, path, size });
-            item.Tag = path;
+            item.Tag     = path;
             item.Checked = true;
             if (isDirectory) item.ForeColor = Color.DarkBlue;
             lstFiles.Items.Add(item);
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  XÓA FILE
+        //  XÓA FILE  (dừng service → xóa → TakeOwnership khi cần)
         // ─────────────────────────────────────────────────────────────────
+
         private void btnDeleteFiles_Click(object sender, EventArgs e)
         {
             var selected = new List<string>();
@@ -216,9 +208,15 @@ namespace frm_HIS_uninstaller_tool
             if (selected.Count == 0) { MessageBox.Show("Chưa chọn mục nào."); return; }
 
             var confirm = MessageBox.Show(
-                $"Sẽ xóa {selected.Count} mục. Không thể khôi phục!\nTiếp tục?",
+                $"Sẽ dừng service Huorong, sau đó xóa {selected.Count} mục.\nKhông thể khôi phục!\nTiếp tục?",
                 "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (confirm != DialogResult.Yes) return;
+
+            var logger = new CleanupLogger();
+            btnDeleteFiles.Enabled = false;
+
+            // Dừng service/driver trước để tránh lỗi "File in use"
+            StopHuorongServices();
 
             int deleted = 0, failed = 0;
             foreach (string path in selected)
@@ -229,24 +227,60 @@ namespace frm_HIS_uninstaller_tool
                     {
                         Directory.Delete(path, recursive: true);
                         Log($"[✔] Xóa thư mục: {path}");
+                        logger.Record($"[✔] Xóa thư mục: {path}");
                         deleted++;
                     }
                     else if (File.Exists(path))
                     {
                         File.Delete(path);
                         Log($"[✔] Xóa file: {path}");
+                        logger.Record($"[✔] Xóa file: {path}");
                         deleted++;
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Thử chiếm quyền sở hữu rồi xóa lại
+                    Log($"[!] Không có quyền — thử TakeOwnership: {path}");
+                    bool owned = File.Exists(path)
+                        ? PrivilegeHelper.TakeOwnershipOfFile(path)
+                        : false; // thư mục: xử lý bên dưới
+
+                    bool retryOk = false;
+                    if (owned)
+                    {
+                        try { File.Delete(path); retryOk = true; }
+                        catch { }
+                    }
+
+                    if (retryOk)
+                    {
+                        Log($"[✔] Xóa sau TakeOwnership: {path}");
+                        logger.Record($"[✔] Xóa (sau TakeOwnership): {path}");
+                        deleted++;
+                    }
+                    else
+                    {
+                        Log($"[✘] Không xóa được (cần reboot): {path}");
+                        logger.Record($"[✘] Thất bại (cần reboot): {path}");
+                        failed++;
                     }
                 }
                 catch (Exception ex)
                 {
                     Log($"[✘] Không xóa được {path}: {ex.Message}");
+                    logger.Record($"[✘] Thất bại: {path} — {ex.Message}");
                     failed++;
                 }
             }
 
+            string reportPath = logger.ExportToDesktop("Xóa file / thư mục");
             Log($"Xóa file xong: {deleted} thành công, {failed} thất bại.");
-            ScanFiles(); // Quét lại
+            MessageBox.Show(
+                $"Xóa: {deleted} thành công, {failed} thất bại.\n\nBáo cáo đã lưu tại:\n{reportPath}",
+                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            ScanFiles();
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -262,13 +296,13 @@ namespace frm_HIS_uninstaller_tool
             Log("Đang quét registry...");
             int count = 0;
 
-            // 1. Fixed known paths — scan on HKLM only (Services/Software)
-            //    and also HKCU for Software/Run paths
+            var cfg = CleanupConfig.Instance;
+
+            // 1. Fixed known paths
             foreach (var (hive, hiveName) in RegistryHives)
             {
-                foreach (string subPath in FixedScanPaths)
+                foreach (string subPath in cfg.FixedScanPaths)
                 {
-                    // Services paths only make sense in HKLM
                     if (subPath.StartsWith("SYSTEM\\", StringComparison.OrdinalIgnoreCase) &&
                         hive != Registry.LocalMachine) continue;
 
@@ -279,10 +313,10 @@ namespace frm_HIS_uninstaller_tool
                             if (key == null) continue;
                             string fullPath = $"{hiveName}\\{subPath}";
 
-                            bool isValueFilter = subPath.EndsWith("\\Run", StringComparison.OrdinalIgnoreCase)
-                                             || subPath.EndsWith("\\RunOnce", StringComparison.OrdinalIgnoreCase);
+                            bool isRunFilter = subPath.EndsWith("\\Run", StringComparison.OrdinalIgnoreCase)
+                                           || subPath.EndsWith("\\RunOnce", StringComparison.OrdinalIgnoreCase);
 
-                            if (isValueFilter)
+                            if (isRunFilter)
                             {
                                 foreach (string valueName in key.GetValueNames())
                                 {
@@ -306,8 +340,8 @@ namespace frm_HIS_uninstaller_tool
                 }
             }
 
-            // 2. Dynamic scan: enumerate Services sub-keys for any Huorong remnants
-            foreach (string servicesPath in DynamicServiceRoots)
+            // 2. Dynamic scan: Services sub-keys
+            foreach (string servicesPath in cfg.DynamicServiceRoots)
             {
                 try
                 {
@@ -327,8 +361,8 @@ namespace frm_HIS_uninstaller_tool
                 catch { }
             }
 
-            // 3. Enum\Root scan: LEGACY_SYSDIAG / LEGACY_HRWFPDRV etc. — kernel driver device entries
-            foreach (string enumPath in EnumRootPaths)
+            // 3. Enum\Root (LEGACY driver entries)
+            foreach (string enumPath in cfg.EnumRootPaths)
             {
                 try
                 {
@@ -338,18 +372,19 @@ namespace frm_HIS_uninstaller_tool
                         foreach (string subName in enumKey.GetSubKeyNames())
                         {
                             bool match = false;
-                            foreach (string kw in LegacyDriverKeywords)
+                            foreach (string kw in cfg.LegacyDriverKeywords)
                                 if (subName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
                                 { match = true; break; }
                             if (!match) continue;
 
                             string fullPath = $"HKLM\\{enumPath}\\{subName}";
                             if (IsAlreadyListed(fullPath)) continue;
+
                             var legacyItem = new ListViewItem(new[] {
                                 fullPath,
                                 "⚠ driver device — kernel lock, tự xóa sau reboot"
                             });
-                            legacyItem.Tag = new RegTarget { KeyPath = fullPath, ValueName = null };
+                            legacyItem.Tag     = new RegTarget { KeyPath = fullPath, ValueName = null };
                             legacyItem.Checked = false;
                             legacyItem.ForeColor = Color.DarkOrange;
                             lstRegistry.Items.Add(legacyItem);
@@ -360,9 +395,9 @@ namespace frm_HIS_uninstaller_tool
                 catch { }
             }
 
-            // 4. Quét data value (REG_BINARY / REG_SZ) chứa "Huorong" trong các path cụ thể
-            var dataSeen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string root in DataScanRoots)
+            // 4. Data value scan (REG_BINARY / REG_SZ chứa "Huorong")
+            var dataSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string root in cfg.DataScanRoots)
             {
                 (RegistryKey hive, string subPath) = ParseRegistryPath(root);
                 if (hive == null) continue;
@@ -376,7 +411,7 @@ namespace frm_HIS_uninstaller_tool
         }
 
         private void ScanDataValuesRecursive(RegistryKey hive, string subPath, string hiveName,
-            ref int count, System.Collections.Generic.HashSet<string> seen, int depth)
+            ref int count, HashSet<string> seen, int depth)
         {
             if (depth > 5) return;
             try
@@ -401,9 +436,9 @@ namespace frm_HIS_uninstaller_tool
                         }
                         catch { continue; }
 
-                        bool match = false;
-                        string preview = "";
-                        bool isCritical = false;
+                        bool   match     = false;
+                        string preview   = "";
+                        bool   isCritical = false;
 
                         if (kind == RegistryValueKind.Binary && val is byte[] bytes)
                         {
@@ -412,10 +447,9 @@ namespace frm_HIS_uninstaller_tool
                             if (match)
                             {
                                 preview = "REG_BINARY (chứa 'Huorong')";
-                                // AppCompatCache — Windows tự rebuild sau reboot, an toàn xóa nhưng đánh dấu rõ
                                 if (valueName.IndexOf("AppCompatCache", StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
-                                    preview = "⚠ AppCompatCache — xóa sẽ reset app-compat cache";
+                                    preview   = "⚠ AppCompatCache — xóa sẽ reset app-compat cache";
                                     isCritical = true;
                                 }
                             }
@@ -438,7 +472,7 @@ namespace frm_HIS_uninstaller_tool
 
                         string display = $"{fullKeyPath} → {(string.IsNullOrEmpty(valueName) ? "(Default)" : valueName)}";
                         var item = new ListViewItem(new[] { display, preview });
-                        item.Tag = new RegTarget { KeyPath = fullKeyPath, ValueName = valueName };
+                        item.Tag     = new RegTarget { KeyPath = fullKeyPath, ValueName = valueName };
                         item.Checked = !isCritical;
                         if (isCritical) item.ForeColor = Color.DarkOrange;
                         lstRegistry.Items.Add(item);
@@ -446,60 +480,16 @@ namespace frm_HIS_uninstaller_tool
                     }
 
                     foreach (string sub in key.GetSubKeyNames())
-                        ScanDataValuesRecursive(hive, $"{subPath}\\{sub}", hiveName,
-                            ref count, seen, depth + 1);
+                        ScanDataValuesRecursive(hive, $"{subPath}\\{sub}", hiveName, ref count, seen, depth + 1);
                 }
             }
             catch { }
         }
 
-        private static bool ContainsByteSequence(byte[] data, byte[] pattern)
-        {
-            int limit = data.Length - pattern.Length;
-            for (int i = 0; i <= limit; i++)
-            {
-                bool ok = true;
-                for (int j = 0; j < pattern.Length; j++)
-                    if (data[i + j] != pattern[j]) { ok = false; break; }
-                if (ok) return true;
-            }
-            return false;
-        }
-
-        private bool IsAlreadyListed(string fullPath)
-        {
-            foreach (ListViewItem existing in lstRegistry.Items)
-                if (existing.Tag is RegTarget rt &&
-                    string.Equals(rt.KeyPath, fullPath, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            return false;
-        }
-
-        private static bool ContainsHuorongKeyword(string s)
-        {
-            if (s == null) return false;
-            foreach (string kw in RegistryKeywords)
-                if (s.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-            return false;
-        }
-
-        private void AddRegItem(string keyDisplay, string value, string keyPath, string valueName)
-        {
-            var item = new ListViewItem(new[] { keyDisplay, value ?? "" });
-            item.Tag = new RegTarget { KeyPath = keyPath, ValueName = valueName };
-            item.Checked = true;
-            lstRegistry.Items.Add(item);
-        }
-
-        private class RegTarget
-        {
-            public string KeyPath;   // e.g. "HKLM\SOFTWARE\Huorong"
-            public string ValueName; // null = xóa cả key
-        }
-
         // ─────────────────────────────────────────────────────────────────
-        //  XÓA REGISTRY (có backup trước)
+        //  XÓA REGISTRY  (backup → TakeOwnership khi cần → báo cáo)
         // ─────────────────────────────────────────────────────────────────
+
         private async void btnDeleteReg_Click(object sender, EventArgs e)
         {
             var targets = new List<RegTarget>();
@@ -516,12 +506,12 @@ namespace frm_HIS_uninstaller_tool
             btnDeleteReg.Enabled = false;
             Log("[*] Đang backup và xóa...");
 
+            var logger = new CleanupLogger();
             int deleted = 0, failed = 0;
             string backupDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                 $"HIS_RegBackup_{DateTime.Now:yyyyMMdd_HHmmss}");
 
-            // Chạy backup + xóa trên background thread — UI không bị đơ
             await Task.Run(() =>
             {
                 BackupSystemRegistry(backupDir);
@@ -530,24 +520,61 @@ namespace frm_HIS_uninstaller_tool
                     try
                     {
                         DeleteRegistryTarget(rt);
-                        Log($"[✔] Xóa: {rt.KeyPath}" + (rt.ValueName != null ? $" → {rt.ValueName}" : ""));
+                        string entry = $"[✔] Xóa: {rt.KeyPath}" +
+                            (rt.ValueName != null ? $" → {rt.ValueName}" : "");
+                        Log(entry);
+                        logger.Record(entry);
                         deleted++;
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        // Thử TakeOwnership nếu là HKLM key
+                        bool retried = false;
+                        if (rt.KeyPath.StartsWith("HKLM\\", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string sub = rt.KeyPath.Substring(5);
+                            if (PrivilegeHelper.TakeOwnershipOfRegistryKey(sub))
+                            {
+                                try
+                                {
+                                    DeleteRegistryTarget(rt);
+                                    string entry = $"[✔] Xóa (sau TakeOwnership): {rt.KeyPath}";
+                                    Log(entry);
+                                    logger.Record(entry);
+                                    deleted++;
+                                    retried = true;
+                                }
+                                catch { }
+                            }
+                        }
+                        if (!retried)
+                        {
+                            string entry = $"[✘] Không có quyền (kernel lock): {rt.KeyPath}";
+                            Log(entry);
+                            logger.Record(entry);
+                            failed++;
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Log($"[✘] Lỗi {rt.KeyPath}: {ex.Message}");
+                        string entry = $"[✘] Lỗi {rt.KeyPath}: {ex.Message}";
+                        Log(entry);
+                        logger.Record(entry);
                         failed++;
                     }
                 }
             });
 
-            // Trở về UI thread — hiện kết quả và quét lại
+            string reportPath = logger.ExportToDesktop("Xóa registry");
             Log($"Xóa xong: {deleted} thành công, {failed} thất bại." +
-                (failed > 0 ? " (Key được kernel bảo vệ — reboot để xóa sạch.)" : ""));
-            MessageBox.Show($"Đã backup vào:\n{backupDir}\n\nXóa: {deleted} thành công, {failed} thất bại.",
+                (failed > 0 ? " (Key kernel-protected → reboot để sạch hoàn toàn.)" : ""));
+            MessageBox.Show(
+                $"Đã backup vào:\n{backupDir}\n\n" +
+                $"Xóa: {deleted} thành công, {failed} thất bại.\n\n" +
+                $"Báo cáo đã lưu tại:\n{reportPath}",
                 "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            ScanRegistry(); // chạy trên UI thread — cập nhật list ngay lập tức
+            ScanRegistry();
         }
 
         private void DeleteRegistryTarget(RegTarget rt)
@@ -559,17 +586,15 @@ namespace frm_HIS_uninstaller_tool
             {
                 using (RegistryKey key = hive.OpenSubKey(subPath, writable: true))
                 {
-                    if (key == null) return; // already gone
+                    if (key == null) return;
                     key.DeleteValue(rt.ValueName, throwOnMissingValue: false);
                 }
                 return;
             }
 
-            // Delete entire key tree
             int lastSlash = subPath.LastIndexOf('\\');
             if (lastSlash < 0)
             {
-                // Direct child of hive root — rare but handle it
                 hive.DeleteSubKeyTree(subPath, throwOnMissingSubKey: false);
             }
             else
@@ -578,7 +603,7 @@ namespace frm_HIS_uninstaller_tool
                 string keyName    = subPath.Substring(lastSlash + 1);
                 using (RegistryKey parent = hive.OpenSubKey(parentPath, writable: true))
                 {
-                    if (parent == null) return; // parent already gone
+                    if (parent == null) return;
                     parent.DeleteSubKeyTree(keyName, throwOnMissingSubKey: false);
                 }
             }
@@ -596,25 +621,26 @@ namespace frm_HIS_uninstaller_tool
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  BACKUP REGISTRY HỆ THỐNG (dùng reg.exe export)
+        //  BACKUP REGISTRY (reg.exe export)
         // ─────────────────────────────────────────────────────────────────
+
         private void BackupSystemRegistry(string backupDir)
         {
             Directory.CreateDirectory(backupDir);
             Log($"[*] Backup vào: {backupDir}");
 
-            foreach (string regPath in CriticalBackupPaths)
+            foreach (string regPath in CleanupConfig.Instance.CriticalBackupPaths)
             {
                 string safeName = regPath.Replace('\\', '_').Replace(':', '_') + ".reg";
-                string outFile = Path.Combine(backupDir, safeName);
+                string outFile  = Path.Combine(backupDir, safeName);
                 try
                 {
                     var psi = new ProcessStartInfo
                     {
-                        FileName = "reg.exe",
+                        FileName  = "reg.exe",
                         Arguments = $"export \"{regPath}\" \"{outFile}\" /y",
                         UseShellExecute = false,
-                        CreateNoWindow = true,
+                        CreateNoWindow  = true,
                     };
                     using (var p = Process.Start(psi)) p.WaitForExit(15000);
                     Log($"[✔] Backup: {regPath}");
@@ -622,15 +648,14 @@ namespace frm_HIS_uninstaller_tool
                 catch (Exception ex) { Log($"[!] Backup lỗi {regPath}: {ex.Message}"); }
             }
 
-            // Backup SOFTWARE\Huorong nếu còn tồn tại
             try
             {
                 var psi2 = new ProcessStartInfo
                 {
-                    FileName = "reg.exe",
+                    FileName  = "reg.exe",
                     Arguments = $"export \"HKLM\\SOFTWARE\\Huorong\" \"{Path.Combine(backupDir, "Huorong_Software.reg")}\" /y",
                     UseShellExecute = false,
-                    CreateNoWindow = true,
+                    CreateNoWindow  = true,
                 };
                 using (var p = Process.Start(psi2)) p.WaitForExit(5000);
             }
@@ -640,8 +665,57 @@ namespace frm_HIS_uninstaller_tool
         }
 
         // ─────────────────────────────────────────────────────────────────
-        //  ĐÓNG FORM — xóa startup key
+        //  HELPERS
         // ─────────────────────────────────────────────────────────────────
+
+        private void AddRegItem(string keyDisplay, string value, string keyPath, string valueName)
+        {
+            var item = new ListViewItem(new[] { keyDisplay, value ?? "" });
+            item.Tag     = new RegTarget { KeyPath = keyPath, ValueName = valueName };
+            item.Checked = true;
+            lstRegistry.Items.Add(item);
+        }
+
+        private bool IsAlreadyListed(string fullPath)
+        {
+            foreach (ListViewItem existing in lstRegistry.Items)
+                if (existing.Tag is RegTarget rt &&
+                    string.Equals(rt.KeyPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
+        }
+
+        private bool ContainsHuorongKeyword(string s)
+        {
+            if (s == null) return false;
+            foreach (string kw in CleanupConfig.Instance.RegistryKeywords)
+                if (s.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            return false;
+        }
+
+        private static bool ContainsByteSequence(byte[] data, byte[] pattern)
+        {
+            int limit = data.Length - pattern.Length;
+            for (int i = 0; i <= limit; i++)
+            {
+                bool ok = true;
+                for (int j = 0; j < pattern.Length; j++)
+                    if (data[i + j] != pattern[j]) { ok = false; break; }
+                if (ok) return true;
+            }
+            return false;
+        }
+
+        private class RegTarget
+        {
+            public string KeyPath;
+            public string ValueName;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        //  BUTTONS
+        // ─────────────────────────────────────────────────────────────────
+
         private void btnDeepScan_Click(object sender, EventArgs e)
         {
             using (Form3 f3 = new Form3())
@@ -650,9 +724,6 @@ namespace frm_HIS_uninstaller_tool
 
         private void btnClose_Click(object sender, EventArgs e) => Application.Exit();
 
-        // ─────────────────────────────────────────────────────────────────
-        //  LOG (thread-safe)
-        // ─────────────────────────────────────────────────────────────────
         private void Log(string msg)
         {
             if (txtLog.InvokeRequired) { txtLog.Invoke(new Action(() => Log(msg))); return; }

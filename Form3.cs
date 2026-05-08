@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -14,38 +15,58 @@ namespace frm_HIS_uninstaller_tool
 {
     public partial class Form3 : Form
     {
-        // Tìm trong data value — chỉ cần 2 keyword chính
-        private static readonly string[] SearchTerms = { "Huorong", "火绒" };
+        // ── Phân loại mức độ rủi ro ───────────────────────────────────────
+        private enum RiskLevel { Safe, Warning, Dangerous }
 
-        // Phạm vi quét — bỏ HKU vì HKCU đã cover user hiện tại, tránh trùng lặp
-        private static readonly string[] Scopes = {
-            "HKLM\\SOFTWARE",
-            "HKLM\\SYSTEM",
-            "HKCU\\SOFTWARE",
-        };
+        private static readonly Color ColorSafe      = Color.FromArgb(20, 120, 20);   // xanh lá
+        private static readonly Color ColorWarning   = Color.DarkOrange;               // cam
+        private static readonly Color ColorDangerous = Color.FromArgb(160, 20, 20);   // đỏ
+
+        // CancellationTokenSource cho nút Stop
+        private CancellationTokenSource _cts;
 
         public Form3() => InitializeComponent();
 
         private void Form3_Load(object sender, EventArgs e) { }
 
-        // ── Quét ─────────────────────────────────────────────────────────────
+        // ── Quét ─────────────────────────────────────────────────────────
 
         private async void btnDeepScan_Click(object sender, EventArgs e)
         {
             lstDeepScan.Items.Clear();
+            _cts = new CancellationTokenSource();
             SetScanState(scanning: true);
+
             Log("══════════════════════════════════════");
             Log("  Deep Scan — tìm trong data value");
             Log("══════════════════════════════════════");
 
-            var results = await Task.Run(() => RunDeepScan());
+            var ct = _cts.Token;
+            List<DeepResult> results;
+            try
+            {
+                results = await Task.Run(() => RunDeepScan(ct), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                Log("[!] Quét bị dừng bởi người dùng.");
+                SetScanState(scanning: false);
+                return;
+            }
+            finally
+            {
+                _cts?.Dispose();
+                _cts = null;
+            }
 
-            if (IsDisposed) return; // form đóng trong khi đang quét
+            if (IsDisposed) return;
 
             foreach (var r in results)
             {
-                bool safe = IsSafeToDelete(r);
-                string dataCol = Truncate(r.Data, 120);
+                RiskLevel risk = GetRiskLevel(r);
+                bool safe      = risk == RiskLevel.Safe;
+
+                string dataCol = Truncate(r.Data, 110);
                 if (IsKernelProtected(r))
                     dataCol = "⚠ Kernel lock — tự xóa sau reboot";
                 else if (r.ValueName.IndexOf("AppCompatCache", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -53,40 +74,82 @@ namespace frm_HIS_uninstaller_tool
                 else if (r.Type == "REG_BINARY")
                     dataCol = "REG_BINARY — không xóa value binary từng phần";
 
-                var item = new ListViewItem(new[] { r.Key, r.ValueName, r.Type, dataCol });
-                item.Tag = r;
+                // Cột đầu: nhãn mức độ rủi ro
+                string riskLabel = risk == RiskLevel.Safe      ? "An toàn"
+                                 : risk == RiskLevel.Warning   ? "Cảnh báo"
+                                                               : "Nguy hiểm";
+
+                var item = new ListViewItem(new[] { riskLabel, r.Key, r.ValueName, r.Type, dataCol });
+                item.Tag     = r;
                 item.Checked = safe;
-                if (!safe) item.ForeColor = Color.DarkOrange;
+                item.ForeColor = risk == RiskLevel.Safe      ? ColorSafe
+                               : risk == RiskLevel.Warning   ? ColorWarning
+                                                             : ColorDangerous;
                 lstDeepScan.Items.Add(item);
             }
 
             lblDeepCount.Text = $"{results.Count} mục tìm thấy";
             SetScanState(scanning: false);
-            btnDeleteDeep.Enabled = results.Count > 0;
-            btnCheckAll.Enabled = btnUncheckAll.Enabled = results.Count > 0;
+            btnDeleteDeep.Enabled  = results.Count > 0;
+            btnCheckAll.Enabled    = btnUncheckAll.Enabled = results.Count > 0;
             Log($"[✔] Hoàn tất: {results.Count} mục.");
         }
 
-        private List<DeepResult> RunDeepScan()
+        private void btnStopScan_Click(object sender, EventArgs e)
         {
-            // Tạo tất cả tổ hợp (term × scope) rồi chạy song song
+            _cts?.Cancel();
+            btnStopScan.Enabled = false;
+            Log("[!] Đang dừng quét...");
+        }
+
+        // ── Phân loại rủi ro ─────────────────────────────────────────────
+
+        private static RiskLevel GetRiskLevel(DeepResult r)
+        {
+            // Nguy hiểm: binary data, Session Manager, AppCompatCache, LEGACY_ kernel entries
+            if (r.Type == "REG_BINARY") return RiskLevel.Dangerous;
+            if (r.Key.IndexOf("Session Manager", StringComparison.OrdinalIgnoreCase) >= 0)
+                return RiskLevel.Dangerous;
+            if (IsKernelProtected(r)) return RiskLevel.Dangerous;
+            if (r.ValueName.IndexOf("AppCompatCache", StringComparison.OrdinalIgnoreCase) >= 0)
+                return RiskLevel.Dangerous;
+
+            // Cảnh báo: service / driver / SYSTEM key
+            if (r.Key.IndexOf("\\Services\\", StringComparison.OrdinalIgnoreCase) >= 0)
+                return RiskLevel.Warning;
+            if (r.Key.IndexOf("\\Enum\\", StringComparison.OrdinalIgnoreCase) >= 0)
+                return RiskLevel.Warning;
+            if (r.Key.StartsWith("HKLM\\SYSTEM", StringComparison.OrdinalIgnoreCase))
+                return RiskLevel.Warning;
+
+            // An toàn: SOFTWARE\Huorong, uninstall entries, Run values
+            return RiskLevel.Safe;
+        }
+
+        // ── Logic quét song song ─────────────────────────────────────────
+
+        private List<DeepResult> RunDeepScan(CancellationToken ct)
+        {
+            var cfg    = CleanupConfig.Instance;
             var combos = new List<(string scope, string term)>();
-            foreach (string term in SearchTerms)
-                foreach (string scope in Scopes)
+            foreach (string term in cfg.DeepScanTerms)
+                foreach (string scope in cfg.DeepScanScopes)
                     combos.Add((scope, term));
 
-            var bag = new ConcurrentBag<DeepResult>();
+            var bag  = new ConcurrentBag<DeepResult>();
+            var opts = new ParallelOptions { CancellationToken = ct };
 
-            Parallel.ForEach(combos, combo =>
+            Parallel.ForEach(combos, opts, combo =>
             {
+                ct.ThrowIfCancellationRequested();
                 InvokeLog($"[*] Quét {combo.scope} /f \"{combo.term}\"...");
-                var items = QueryRegData(combo.scope, combo.term);
+                var items = QueryRegData(combo.scope, combo.term, ct);
                 foreach (var r in items) bag.Add(r);
                 InvokeLog($"    [+] {combo.scope}: {items.Count} kết quả.");
             });
 
             // Gộp và loại trùng
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seen    = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var results = new List<DeepResult>();
             foreach (var r in bag)
                 if (seen.Add(r.Key + "|" + r.ValueName))
@@ -95,17 +158,17 @@ namespace frm_HIS_uninstaller_tool
             return results;
         }
 
-        private static List<DeepResult> QueryRegData(string scope, string term)
+        private static List<DeepResult> QueryRegData(string scope, string term, CancellationToken ct)
         {
             var results = new List<DeepResult>();
             var psi = new ProcessStartInfo
             {
-                FileName = "reg.exe",
-                Arguments = $"query \"{ExpandHive(scope)}\" /f \"{term}\" /s /d",
-                UseShellExecute = false,
-                CreateNoWindow = true,
+                FileName               = "reg.exe",
+                Arguments              = $"query \"{ExpandHive(scope)}\" /f \"{term}\" /s /d",
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                RedirectStandardError  = true,
                 StandardOutputEncoding = Encoding.Default,
             };
 
@@ -114,15 +177,17 @@ namespace frm_HIS_uninstaller_tool
             {
                 using (var p = Process.Start(psi))
                 {
-                    output = p.StandardOutput.ReadToEnd();
-                    p.WaitForExit(120000);
+                    // Khi token bị hủy → kill process để ReadToEnd() không bị treo
+                    using (ct.Register(() => { try { p.Kill(); } catch { } }))
+                    {
+                        output = p.StandardOutput.ReadToEnd();
+                        p.WaitForExit(120000);
+                    }
                 }
             }
             catch { return results; }
 
-            // Phân tích output:
-            //   HKEY_LOCAL_MACHINE\SOFTWARE\SomeKey
-            //       ValueName    REG_SZ    Data
+            // Phân tích output của reg.exe
             string currentKey = null;
             foreach (string rawLine in output.Split('\n'))
             {
@@ -138,7 +203,6 @@ namespace frm_HIS_uninstaller_tool
                 }
                 else if (currentKey != null)
                 {
-                    // Fields separated by 2+ whitespace: Name    REG_TYPE    Data
                     var m = Regex.Match(line.TrimStart(), @"^(.*?)\s{2,}(REG_\w+)(?:\s{2,}(.*))?$");
                     if (m.Success)
                     {
@@ -152,11 +216,10 @@ namespace frm_HIS_uninstaller_tool
                     }
                 }
             }
-
             return results;
         }
 
-        // ── Xóa ──────────────────────────────────────────────────────────────
+        // ── Xóa ──────────────────────────────────────────────────────────
 
         private void btnDeleteDeep_Click(object sender, EventArgs e)
         {
@@ -166,31 +229,55 @@ namespace frm_HIS_uninstaller_tool
 
             if (targets.Count == 0) { MessageBox.Show("Chưa chọn mục nào."); return; }
 
+            // Hiển thị số lượng theo từng mức
+            int countSafe    = 0, countWarn = 0, countDanger = 0;
+            foreach (var r in targets)
+                switch (GetRiskLevel(r))
+                {
+                    case RiskLevel.Safe:      countSafe++;    break;
+                    case RiskLevel.Warning:   countWarn++;    break;
+                    case RiskLevel.Dangerous: countDanger++;  break;
+                }
+
             var confirm = MessageBox.Show(
-                $"Sẽ backup registry liên quan trước, rồi xóa {targets.Count} data value.\nTiếp tục?",
+                $"Sẽ backup registry liên quan trước, rồi xóa {targets.Count} data value:\n\n" +
+                $"  • An toàn   : {countSafe}\n" +
+                $"  • Cảnh báo  : {countWarn}\n" +
+                $"  • Nguy hiểm : {countDanger}\n\nTiếp tục?",
                 "Xác nhận Deep Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (confirm != DialogResult.Yes) return;
 
             BackupAffectedKeys(targets);
 
-            int deleted = 0, failed = 0;
+            var logger   = new CleanupLogger();
+            int deleted  = 0, failed = 0;
+
             foreach (var r in targets)
             {
                 try
                 {
                     DeleteValue(r);
-                    Log($"[✔] Xóa value: {r.Key}  →  {r.ValueName}");
+                    string entry = $"[✔] Xóa value: {r.Key}  →  {r.ValueName}";
+                    Log(entry);
+                    logger.Record(entry);
                     deleted++;
                 }
                 catch (Exception ex)
                 {
-                    Log($"[✘] Lỗi: {r.Key} → {r.ValueName}: {ex.Message}");
+                    string entry = $"[✘] Lỗi: {r.Key} → {r.ValueName}: {ex.Message}";
+                    Log(entry);
+                    logger.Record(entry);
                     failed++;
                 }
             }
 
+            string reportPath = logger.ExportToDesktop("Deep Scan — Xóa data value");
             Log($"Xóa xong: {deleted} thành công, {failed} thất bại.");
-            btnDeepScan.PerformClick(); // quét lại
+            MessageBox.Show(
+                $"Xóa: {deleted} thành công, {failed} thất bại.\n\nBáo cáo đã lưu tại:\n{reportPath}",
+                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            btnDeepScan.PerformClick();
         }
 
         private static void DeleteValue(DeepResult r)
@@ -206,13 +293,12 @@ namespace frm_HIS_uninstaller_tool
             }
         }
 
-        // ── Backup ───────────────────────────────────────────────────────────
+        // ── Backup ───────────────────────────────────────────────────────
 
         private void BackupAffectedKeys(List<DeepResult> targets)
         {
-            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string backupDir = Path.Combine(desktop,
-                $"HIS_DeepBackup_{DateTime.Now:yyyyMMdd_HHmmss}");
+            string desktop   = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string backupDir = Path.Combine(desktop, $"HIS_DeepBackup_{DateTime.Now:yyyyMMdd_HHmmss}");
             Directory.CreateDirectory(backupDir);
             Log($"[*] Backup vào: {backupDir}");
 
@@ -226,10 +312,10 @@ namespace frm_HIS_uninstaller_tool
                 {
                     var psi = new ProcessStartInfo
                     {
-                        FileName  = "reg.exe",
-                        Arguments = $"export \"{ExpandHive(r.Key)}\" \"{outFile}\" /y",
-                        UseShellExecute    = false,
-                        CreateNoWindow     = true,
+                        FileName       = "reg.exe",
+                        Arguments      = $"export \"{ExpandHive(r.Key)}\" \"{outFile}\" /y",
+                        UseShellExecute = false,
+                        CreateNoWindow  = true,
                     };
                     using (var p = Process.Start(psi)) p?.WaitForExit(10000);
                     Log($"[✔] Backup: {r.Key}");
@@ -241,7 +327,7 @@ namespace frm_HIS_uninstaller_tool
                 "Backup hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ── Helpers ──────────────────────────────────────────────────────────
+        // ── Helpers ──────────────────────────────────────────────────────
 
         private void btnCheckAll_Click(object sender, EventArgs e)
         {
@@ -253,30 +339,24 @@ namespace frm_HIS_uninstaller_tool
             foreach (ListViewItem item in lstDeepScan.Items) item.Checked = false;
         }
 
-        private void btnCloseDeep_Click(object sender, EventArgs e) => this.Close();
+        private void btnCloseDeep_Click(object sender, EventArgs e)
+        {
+            _cts?.Cancel();
+            this.Close();
+        }
 
         private void SetScanState(bool scanning)
         {
             btnDeepScan.Enabled   = !scanning;
+            btnStopScan.Enabled   = scanning;
             btnDeleteDeep.Enabled = false;
             btnCheckAll.Enabled   = !scanning;
             btnUncheckAll.Enabled = !scanning;
-            progressDeep.Style = scanning
-                ? ProgressBarStyle.Marquee
-                : ProgressBarStyle.Blocks;
-            lblDeepCount.Text = scanning ? "Đang quét..." : lblDeepCount.Text;
+            progressDeep.Style    = scanning ? ProgressBarStyle.Marquee : ProgressBarStyle.Blocks;
+            lblDeepCount.Text     = scanning ? "Đang quét..." : lblDeepCount.Text;
         }
 
-        private static bool IsSafeToDelete(DeepResult r)
-        {
-            // Binary data — không sửa được surgically
-            if (r.Type == "REG_BINARY") return false;
-            // AppCompatCache — Windows tự rebuild nhưng không nên xóa tự động
-            if (r.ValueName.IndexOf("AppCompatCache", StringComparison.OrdinalIgnoreCase) >= 0) return false;
-            // Enum\Root\LEGACY_* — kernel đang giữ lock, không xóa được khi đang chạy
-            if (IsKernelProtected(r)) return false;
-            return true;
-        }
+        private static bool IsSafeToDelete(DeepResult r) => GetRiskLevel(r) == RiskLevel.Safe;
 
         private static bool IsKernelProtected(DeepResult r)
             => r.Key.IndexOf("\\Enum\\Root\\LEGACY_", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -290,8 +370,7 @@ namespace frm_HIS_uninstaller_tool
                 return "HKEY_LOCAL_MACHINE\\" + path.Substring(5);
             if (path.StartsWith("HKCU\\", StringComparison.OrdinalIgnoreCase))
                 return "HKEY_CURRENT_USER\\" + path.Substring(5);
-            if (path.Equals("HKU", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("HKU\\", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWith("HKU\\", StringComparison.OrdinalIgnoreCase))
                 return "HKEY_USERS" + path.Substring(3);
             if (path.StartsWith("HKCR\\", StringComparison.OrdinalIgnoreCase))
                 return "HKEY_CLASSES_ROOT\\" + path.Substring(5);
