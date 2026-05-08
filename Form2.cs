@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -135,6 +136,12 @@ namespace frm_HIS_uninstaller_tool
                     count++;
                     try
                     {
+                        foreach (string sub in Directory.GetDirectories(path, "*", SearchOption.AllDirectories))
+                        { AddFileItem(sub, isDirectory: true); count++; }
+                    }
+                    catch { }
+                    try
+                    {
                         foreach (string f in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
                         { AddFileItem(f, isDirectory: false); count++; }
                     }
@@ -261,7 +268,11 @@ namespace frm_HIS_uninstaller_tool
             var L = LangManager.L;
             var selected = new List<string>();
             foreach (ListViewItem item in lstFiles.Items)
-                if (item.Checked) selected.Add(item.Tag?.ToString());
+            {
+                if (!item.Checked) continue;
+                string p = item.Tag?.ToString();
+                if (!string.IsNullOrEmpty(p)) selected.Add(p);
+            }
 
             if (selected.Count == 0) { MessageBox.Show(L.Get("form2.dlg.nosel")); return; }
 
@@ -272,64 +283,20 @@ namespace frm_HIS_uninstaller_tool
 
             var logger = new CleanupLogger();
             btnDeleteFiles.Enabled = false;
-
-            // Dừng service/driver trước để tránh lỗi "File in use"
             StopHuorongServices();
 
+            // Chỉ xử lý "root" — bỏ qua con của item cha đã được chọn
+            var selectedSet = new HashSet<string>(selected, StringComparer.OrdinalIgnoreCase);
+            var roots = selected.Where(p => !HasSelectedAncestor(p, selectedSet)).ToList();
+
             int deleted = 0, failed = 0;
-            foreach (string path in selected)
+            foreach (string path in roots)
             {
-                try
-                {
-                    if (Directory.Exists(path))
-                    {
-                        Directory.Delete(path, recursive: true);
-                        Log($"[✔] Xóa thư mục: {path}");
-                        logger.Record($"[✔] Xóa thư mục: {path}");
-                        deleted++;
-                    }
-                    else if (File.Exists(path))
-                    {
-                        File.Delete(path);
-                        Log($"[✔] Xóa file: {path}");
-                        logger.Record($"[✔] Xóa file: {path}");
-                        deleted++;
-                    }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    // Thử chiếm quyền sở hữu rồi xóa lại
-                    Log($"[!] Không có quyền — thử TakeOwnership: {path}");
-                    bool owned = File.Exists(path)
-                        ? PrivilegeHelper.TakeOwnershipOfFile(path)
-                        : false; // thư mục: xử lý bên dưới
-
-                    bool retryOk = false;
-                    if (owned)
-                    {
-                        try { File.Delete(path); retryOk = true; }
-                        catch { }
-                    }
-
-                    if (retryOk)
-                    {
-                        Log($"[✔] Xóa sau TakeOwnership: {path}");
-                        logger.Record($"[✔] Xóa (sau TakeOwnership): {path}");
-                        deleted++;
-                    }
-                    else
-                    {
-                        Log($"[✘] Không xóa được (cần reboot): {path}");
-                        logger.Record($"[✘] Thất bại (cần reboot): {path}");
-                        failed++;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log($"[✘] Không xóa được {path}: {ex.Message}");
-                    logger.Record($"[✘] Thất bại: {path} — {ex.Message}");
-                    failed++;
-                }
+                if (Directory.Exists(path))
+                    DeleteDirectoryClean(path, logger, ref deleted, ref failed);
+                else if (File.Exists(path))
+                    TryDeleteFile(path, logger, ref deleted, ref failed);
+                // đã biến mất → bỏ qua
             }
 
             string reportPath = logger.ExportToDesktop("Xóa file / thư mục");
@@ -341,6 +308,156 @@ namespace frm_HIS_uninstaller_tool
                 LD.Get("form2.dlg.done.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             ScanFiles();
+        }
+
+        // Tìm xem path có tổ tiên nào cũng nằm trong danh sách được chọn không
+        private static bool HasSelectedAncestor(string path, HashSet<string> selectedSet)
+        {
+            string current = Path.GetDirectoryName(path);
+            while (!string.IsNullOrEmpty(current))
+            {
+                if (selectedSet.Contains(current)) return true;
+                string parent = Path.GetDirectoryName(current);
+                if (parent == current) break; // đã tới root ổ đĩa
+                current = parent;
+            }
+            return false;
+        }
+
+        // Xóa thư mục theo thứ tự: file → subdir sâu nhất trước → thư mục gốc cuối cùng
+        private void DeleteDirectoryClean(string dirPath, CleanupLogger logger, ref int deleted, ref int failed)
+        {
+            if (!Directory.Exists(dirPath)) return;
+
+            // Bước 1: xóa hết file bên trong (mọi cấp)
+            try
+            {
+                foreach (string file in Directory.GetFiles(dirPath, "*", SearchOption.AllDirectories))
+                    TryDeleteFile(file, logger, ref deleted, ref failed);
+            }
+            catch { }
+
+            // Bước 2: xóa subdir từ sâu nhất lên (path dài hơn = sâu hơn)
+            try
+            {
+                var subdirs = Directory.GetDirectories(dirPath, "*", SearchOption.AllDirectories)
+                    .OrderByDescending(d => d.Length);
+                foreach (string sub in subdirs)
+                {
+                    if (!Directory.Exists(sub)) continue;
+                    TryDeleteEmptyDir(sub, logger, ref deleted, ref failed);
+                }
+            }
+            catch { }
+
+            // Bước 3: xóa thư mục gốc (lúc này đã rỗng hoặc gần rỗng)
+            if (!Directory.Exists(dirPath)) return;
+            TryDeleteEmptyDir(dirPath, logger, ref deleted, ref failed);
+        }
+
+        private void TryDeleteEmptyDir(string dirPath, CleanupLogger logger, ref int deleted, ref int failed)
+        {
+            try
+            {
+                Directory.Delete(dirPath, recursive: false);
+                Log($"[✔] Xóa thư mục: {dirPath}");
+                logger.Record($"[✔] Xóa thư mục: {dirPath}");
+                deleted++;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Last resort: cmd rmdir
+                Log($"[!] Bị khóa — thử cmd rmdir: {dirPath}");
+                if (TryForceDeleteDir(dirPath))
+                {
+                    Log($"[✔] Xóa thư mục (cmd): {dirPath}");
+                    logger.Record($"[✔] Xóa thư mục (cmd): {dirPath}");
+                    deleted++;
+                }
+                else
+                {
+                    Log($"[✘] Không xóa được thư mục: {dirPath}");
+                    logger.Record($"[✘] Thất bại (thư mục): {dirPath}");
+                    failed++;
+                }
+            }
+            catch (IOException)
+            {
+                // Vẫn còn nội dung (file bị khóa bởi process khác) → cmd rmdir
+                Log($"[!] Còn nội dung bị khóa — thử cmd rmdir: {dirPath}");
+                if (TryForceDeleteDir(dirPath))
+                {
+                    Log($"[✔] Xóa thư mục (cmd): {dirPath}");
+                    logger.Record($"[✔] Xóa thư mục (cmd): {dirPath}");
+                    deleted++;
+                }
+                else
+                {
+                    Log($"[✘] Không xóa được thư mục: {dirPath}");
+                    logger.Record($"[✘] Thất bại (thư mục): {dirPath}");
+                    failed++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[✘] Lỗi xóa thư mục {dirPath}: {ex.Message}");
+                logger.Record($"[✘] Thất bại: {dirPath}");
+                failed++;
+            }
+        }
+
+        private void TryDeleteFile(string filePath, CleanupLogger logger, ref int deleted, ref int failed)
+        {
+            if (!File.Exists(filePath)) return;
+            try
+            {
+                File.Delete(filePath);
+                Log($"[✔] Xóa file: {filePath}");
+                logger.Record($"[✔] Xóa file: {filePath}");
+                deleted++;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Log($"[!] Không có quyền — thử TakeOwnership: {filePath}");
+                if (PrivilegeHelper.TakeOwnershipOfFile(filePath))
+                {
+                    try
+                    {
+                        File.Delete(filePath);
+                        Log($"[✔] Xóa sau TakeOwnership: {filePath}");
+                        logger.Record($"[✔] Xóa (sau TakeOwnership): {filePath}");
+                        deleted++;
+                        return;
+                    }
+                    catch { }
+                }
+                Log($"[✘] Không xóa được (cần reboot): {filePath}");
+                logger.Record($"[✘] Thất bại (cần reboot): {filePath}");
+                failed++;
+            }
+            catch (Exception ex)
+            {
+                Log($"[✘] Không xóa được {filePath}: {ex.Message}");
+                logger.Record($"[✘] Thất bại: {filePath} — {ex.Message}");
+                failed++;
+            }
+        }
+
+        private static bool TryForceDeleteDir(string dirPath)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c rmdir /s /q \"{dirPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow  = true,
+                };
+                Process.Start(psi)?.WaitForExit(8000);
+                return !Directory.Exists(dirPath);
+            }
+            catch { return false; }
         }
 
         // ─────────────────────────────────────────────────────────────────

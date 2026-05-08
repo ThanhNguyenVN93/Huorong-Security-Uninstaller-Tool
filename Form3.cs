@@ -84,8 +84,11 @@ namespace frm_HIS_uninstaller_tool
             }
             catch (OperationCanceledException)
             {
-                Log("[!] Quét bị dừng bởi người dùng.");
-                SetScanState(scanning: false);
+                if (!IsDisposed)
+                {
+                    Log("[!] Quét bị dừng bởi người dùng.");
+                    SetScanState(scanning: false);
+                }
                 return;
             }
             finally
@@ -313,7 +316,8 @@ namespace frm_HIS_uninstaller_tool
                 L.Get("form3.dlg.done", deleted, failed, reportPath),
                 L.Get("form3.dlg.done.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-            btnDeepScan.PerformClick();
+            if (!IsDisposed)
+                btnDeepScan.PerformClick();
         }
 
         /// <summary>Xác minh các registry key hệ thống quan trọng vẫn còn nguyên sau khi xóa.</summary>
@@ -415,6 +419,7 @@ namespace frm_HIS_uninstaller_tool
 
         private void SetScanState(bool scanning)
         {
+            if (IsDisposed) return;
             btnDeepScan.Enabled   = !scanning;
             btnStopScan.Enabled   = scanning;
             btnDeleteDeep.Enabled = false;
