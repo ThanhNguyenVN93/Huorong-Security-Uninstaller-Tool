@@ -8,6 +8,9 @@
 -->
 <CleanupConfig>
 
+  <!-- Ngôn ngữ giao diện: "vi" (Tiếng Việt) hoặc "en" (English) -->
+  <Language>vi</Language>
+
   <!-- Thư mục / file cần quét và xóa -->
   <FileScanRoots>
     <Path>%PROGRAMFILES%\Huorong</Path>

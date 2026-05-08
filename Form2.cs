@@ -26,10 +26,26 @@ namespace frm_HIS_uninstaller_tool
 
         private void Form2_Load(object sender, EventArgs e)
         {
+            ApplyLanguage();
             DeleteStartupTask();
             Log("Form2 khởi động — tự động quét...");
             ScanFiles();
             ScanRegistry();
+        }
+
+        private void ApplyLanguage()
+        {
+            var L = LangManager.L;
+            this.Text           = L.Get("form2.title");
+            lblTitle.Text       = L.Get("form2.maintitle");
+            lblSubtitle.Text    = L.Get("form2.subtitle");
+            lblFileHeader.Text  = L.Get("form2.hdr.files");
+            lblRegHeader.Text   = L.Get("form2.hdr.registry");
+            lblRegWarning.Text  = L.Get("form2.warn.backup");
+            btnDeleteFiles.Text = L.Get("form2.btn.deletefile");
+            btnDeleteReg.Text   = L.Get("form2.btn.deletereg");
+            btnDeepScan.Text    = L.Get("form2.btn.deepscan");
+            btnClose.Text       = L.Get("form2.btn.close");
         }
 
         private static void DeleteStartupTask()
@@ -88,6 +104,13 @@ namespace frm_HIS_uninstaller_tool
             catch { }
         }
 
+        private static void RestartWindowsSearch()
+        {
+            RunSc("stop", "WSearch");
+            System.Threading.Thread.Sleep(1500);
+            RunSc("start", "WSearch");
+        }
+
         // ─────────────────────────────────────────────────────────────────
         //  QUÉT FILE
         // ─────────────────────────────────────────────────────────────────
@@ -128,8 +151,10 @@ namespace frm_HIS_uninstaller_tool
         }
 
         /// <summary>
-        /// Tìm các thư mục trong DriverStore\FileRepository có tên chứa từ khoá Huorong.
-        /// Đây là nơi Windows lưu bản sao driver mà uninstaller thường bỏ sót.
+        /// Tìm các thư mục trong DriverStore\FileRepository liên quan đến Huorong.
+        /// Pass 1: khớp theo tên thư mục.
+        /// Pass 2: với thư mục không khớp tên (tên ngẫu nhiên như oem12.inf_x64_...),
+        ///         đọc nội dung file .inf bên trong để tìm từ khoá.
         /// </summary>
         private int ScanDriverStore()
         {
@@ -145,12 +170,22 @@ namespace frm_HIS_uninstaller_tool
                     foreach (string subDir in Directory.GetDirectories(driverStoreRoot))
                     {
                         string dirName = Path.GetFileName(subDir);
-                        bool match = false;
+
+                        // Pass 1: khớp tên thư mục
+                        bool nameMatch = false;
                         foreach (string kw in keywords)
                             if (dirName.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
-                            { match = true; break; }
+                            { nameMatch = true; break; }
 
-                        if (!match) continue;
+                        // Pass 2: quét nội dung .inf nếu tên không khớp
+                        bool infMatch = false;
+                        if (!nameMatch)
+                            infMatch = InfContainsHuorong(subDir, keywords);
+
+                        if (!nameMatch && !infMatch) continue;
+
+                        string tag = infMatch && !nameMatch ? " [qua .inf]" : "";
+                        Log($"[*] DriverStore{tag}: {dirName}");
 
                         AddFileItem(subDir, isDirectory: true);
                         found++;
@@ -167,6 +202,26 @@ namespace frm_HIS_uninstaller_tool
 
             if (found > 0) Log($"[*] DriverStore: {found} mục liên quan Huorong.");
             return found;
+        }
+
+        /// <summary>Đọc các file .inf trong subDir (không đệ quy) và tìm từ khoá.</summary>
+        private static bool InfContainsHuorong(string subDir, string[] keywords)
+        {
+            try
+            {
+                foreach (string inf in Directory.GetFiles(subDir, "*.inf", SearchOption.TopDirectoryOnly))
+                {
+                    string content;
+                    try { content = File.ReadAllText(inf, Encoding.Default); }
+                    catch { continue; }
+
+                    foreach (string kw in keywords)
+                        if (content.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+                            return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         private void AddFileItem(string path, bool isDirectory)
@@ -201,15 +256,16 @@ namespace frm_HIS_uninstaller_tool
 
         private void btnDeleteFiles_Click(object sender, EventArgs e)
         {
+            var L = LangManager.L;
             var selected = new List<string>();
             foreach (ListViewItem item in lstFiles.Items)
                 if (item.Checked) selected.Add(item.Tag?.ToString());
 
-            if (selected.Count == 0) { MessageBox.Show("Chưa chọn mục nào."); return; }
+            if (selected.Count == 0) { MessageBox.Show(L.Get("form2.dlg.nosel")); return; }
 
             var confirm = MessageBox.Show(
-                $"Sẽ dừng service Huorong, sau đó xóa {selected.Count} mục.\nKhông thể khôi phục!\nTiếp tục?",
-                "Xác nhận xóa", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                L.Get("form2.dlg.confirmfile", selected.Count),
+                L.Get("form2.dlg.confirmfile.title"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (confirm != DialogResult.Yes) return;
 
             var logger = new CleanupLogger();
@@ -276,9 +332,11 @@ namespace frm_HIS_uninstaller_tool
 
             string reportPath = logger.ExportToDesktop("Xóa file / thư mục");
             Log($"Xóa file xong: {deleted} thành công, {failed} thất bại.");
+
+            var LD = LangManager.L;
             MessageBox.Show(
                 $"Xóa: {deleted} thành công, {failed} thất bại.\n\nBáo cáo đã lưu tại:\n{reportPath}",
-                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LD.Get("form2.dlg.done.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             ScanFiles();
         }
@@ -492,15 +550,16 @@ namespace frm_HIS_uninstaller_tool
 
         private async void btnDeleteReg_Click(object sender, EventArgs e)
         {
+            var L = LangManager.L;
             var targets = new List<RegTarget>();
             foreach (ListViewItem item in lstRegistry.Items)
                 if (item.Checked && item.Tag is RegTarget rt) targets.Add(rt);
 
-            if (targets.Count == 0) { MessageBox.Show("Chưa chọn mục nào."); return; }
+            if (targets.Count == 0) { MessageBox.Show(L.Get("form2.dlg.nosel")); return; }
 
             var confirm = MessageBox.Show(
-                $"Sẽ backup registry hệ thống trước, rồi xóa {targets.Count} mục.\nTiếp tục?",
-                "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                L.Get("form2.dlg.confirmreg", targets.Count),
+                L.Get("form2.dlg.confirmreg.title"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (confirm != DialogResult.Yes) return;
 
             btnDeleteReg.Enabled = false;
@@ -568,11 +627,24 @@ namespace frm_HIS_uninstaller_tool
             string reportPath = logger.ExportToDesktop("Xóa registry");
             Log($"Xóa xong: {deleted} thành công, {failed} thất bại." +
                 (failed > 0 ? " (Key kernel-protected → reboot để sạch hoàn toàn.)" : ""));
+
+            // Khởi động lại Windows Search nếu đã xóa CrawlScopeManager
+            bool affectsCrawl = targets.Exists(rt =>
+                rt.KeyPath.IndexOf("CrawlScopeManager", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (affectsCrawl)
+            {
+                var LW = LangManager.L;
+                MessageBox.Show(LW.Get("form2.dlg.wsearch"), LW.Get("form2.dlg.wsearch.title"),
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Log("[*] Khởi động lại Windows Search (WSearch)...");
+                RestartWindowsSearch();
+                Log("[✔] WSearch đã khởi động lại.");
+            }
+
+            var LD2 = LangManager.L;
             MessageBox.Show(
-                $"Đã backup vào:\n{backupDir}\n\n" +
-                $"Xóa: {deleted} thành công, {failed} thất bại.\n\n" +
-                $"Báo cáo đã lưu tại:\n{reportPath}",
-                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LD2.Get("form2.dlg.done", backupDir, deleted, failed, reportPath),
+                LD2.Get("form2.dlg.done.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             ScanRegistry();
         }

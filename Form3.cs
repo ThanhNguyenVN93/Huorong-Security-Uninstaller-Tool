@@ -18,6 +18,16 @@ namespace frm_HIS_uninstaller_tool
         // ── Phân loại mức độ rủi ro ───────────────────────────────────────
         private enum RiskLevel { Safe, Warning, Dangerous }
 
+        // Các key tối thiểu phải còn tồn tại sau khi xóa
+        private static readonly string[] IntegrityCheckPaths = {
+            @"HKLM\SYSTEM\CurrentControlSet\Control",
+            @"HKLM\SYSTEM\CurrentControlSet\Services",
+            @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion",
+            @"HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion",
+            @"HKLM\SOFTWARE\Classes\.exe",
+            @"HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer",
+        };
+
         private static readonly Color ColorSafe      = Color.FromArgb(20, 120, 20);   // xanh lá
         private static readonly Color ColorWarning   = Color.DarkOrange;               // cam
         private static readonly Color ColorDangerous = Color.FromArgb(160, 20, 20);   // đỏ
@@ -27,7 +37,27 @@ namespace frm_HIS_uninstaller_tool
 
         public Form3() => InitializeComponent();
 
-        private void Form3_Load(object sender, EventArgs e) { }
+        private void Form3_Load(object sender, EventArgs e) => ApplyLanguage();
+
+        private void ApplyLanguage()
+        {
+            var L = LangManager.L;
+            this.Text            = L.Get("form3.title");
+            lblTitle3.Text       = L.Get("form3.hdr.title");
+            lblSubtitle3.Text    = L.Get("form3.subtitle");
+            btnDeepScan.Text     = L.Get("form3.btn.scan");
+            btnStopScan.Text     = L.Get("form3.btn.stop");
+            btnCheckAll.Text     = L.Get("form3.btn.checkall");
+            btnUncheckAll.Text   = L.Get("form3.btn.uncheckall");
+            btnDeleteDeep.Text   = L.Get("form3.btn.delete");
+            btnCloseDeep.Text    = L.Get("form3.btn.close");
+            colDRisk.Text        = L.Get("form3.col.risk");
+            colDKey.Text         = L.Get("form3.col.key");
+            colDName.Text        = L.Get("form3.col.name");
+            colDType.Text        = L.Get("form3.col.type");
+            colDData.Text        = L.Get("form3.col.data");
+            lblDeepCount.Text    = L.Get("form3.scan.notrun");
+        }
 
         // ── Quét ─────────────────────────────────────────────────────────
 
@@ -75,9 +105,10 @@ namespace frm_HIS_uninstaller_tool
                     dataCol = "REG_BINARY — không xóa value binary từng phần";
 
                 // Cột đầu: nhãn mức độ rủi ro
-                string riskLabel = risk == RiskLevel.Safe      ? "An toàn"
-                                 : risk == RiskLevel.Warning   ? "Cảnh báo"
-                                                               : "Nguy hiểm";
+                var L3 = LangManager.L;
+                string riskLabel = risk == RiskLevel.Safe      ? L3.Get("form3.risk.safe")
+                                 : risk == RiskLevel.Warning   ? L3.Get("form3.risk.warning")
+                                                               : L3.Get("form3.risk.dangerous");
 
                 var item = new ListViewItem(new[] { riskLabel, r.Key, r.ValueName, r.Type, dataCol });
                 item.Tag     = r;
@@ -88,7 +119,7 @@ namespace frm_HIS_uninstaller_tool
                 lstDeepScan.Items.Add(item);
             }
 
-            lblDeepCount.Text = $"{results.Count} mục tìm thấy";
+            lblDeepCount.Text = LangManager.L.Get("form3.scan.found", results.Count);
             SetScanState(scanning: false);
             btnDeleteDeep.Enabled  = results.Count > 0;
             btnCheckAll.Enabled    = btnUncheckAll.Enabled = results.Count > 0;
@@ -223,34 +254,31 @@ namespace frm_HIS_uninstaller_tool
 
         private void btnDeleteDeep_Click(object sender, EventArgs e)
         {
+            var L = LangManager.L;
             var targets = new List<DeepResult>();
             foreach (ListViewItem item in lstDeepScan.Items)
                 if (item.Checked && item.Tag is DeepResult r) targets.Add(r);
 
-            if (targets.Count == 0) { MessageBox.Show("Chưa chọn mục nào."); return; }
+            if (targets.Count == 0) { MessageBox.Show(L.Get("form3.dlg.nosel")); return; }
 
-            // Hiển thị số lượng theo từng mức
-            int countSafe    = 0, countWarn = 0, countDanger = 0;
+            int countSafe = 0, countWarn = 0, countDanger = 0;
             foreach (var r in targets)
                 switch (GetRiskLevel(r))
                 {
-                    case RiskLevel.Safe:      countSafe++;    break;
-                    case RiskLevel.Warning:   countWarn++;    break;
-                    case RiskLevel.Dangerous: countDanger++;  break;
+                    case RiskLevel.Safe:      countSafe++;   break;
+                    case RiskLevel.Warning:   countWarn++;   break;
+                    case RiskLevel.Dangerous: countDanger++; break;
                 }
 
             var confirm = MessageBox.Show(
-                $"Sẽ backup registry liên quan trước, rồi xóa {targets.Count} data value:\n\n" +
-                $"  • An toàn   : {countSafe}\n" +
-                $"  • Cảnh báo  : {countWarn}\n" +
-                $"  • Nguy hiểm : {countDanger}\n\nTiếp tục?",
-                "Xác nhận Deep Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                L.Get("form3.dlg.confirm", targets.Count, countSafe, countWarn, countDanger),
+                L.Get("form3.dlg.confirm.title"), MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (confirm != DialogResult.Yes) return;
 
             BackupAffectedKeys(targets);
 
-            var logger   = new CleanupLogger();
-            int deleted  = 0, failed = 0;
+            var logger  = new CleanupLogger();
+            int deleted = 0, failed = 0;
 
             foreach (var r in targets)
             {
@@ -271,13 +299,42 @@ namespace frm_HIS_uninstaller_tool
                 }
             }
 
+            // Kiểm tra tính toàn vẹn registry sau khi xóa
+            CheckRegistryIntegrity();
+
             string reportPath = logger.ExportToDesktop("Deep Scan — Xóa data value");
             Log($"Xóa xong: {deleted} thành công, {failed} thất bại.");
             MessageBox.Show(
-                $"Xóa: {deleted} thành công, {failed} thất bại.\n\nBáo cáo đã lưu tại:\n{reportPath}",
-                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                L.Get("form3.dlg.done", deleted, failed, reportPath),
+                L.Get("form3.dlg.done.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
 
             btnDeepScan.PerformClick();
+        }
+
+        /// <summary>Xác minh các registry key hệ thống quan trọng vẫn còn nguyên sau khi xóa.</summary>
+        private void CheckRegistryIntegrity()
+        {
+            Log("── Kiểm tra tính toàn vẹn Registry ───────────────");
+            bool allOk = true;
+
+            foreach (string path in IntegrityCheckPaths)
+            {
+                (RegistryKey hive, string sub) = ParsePath(path);
+                bool exists = false;
+                try
+                {
+                    using (RegistryKey key = hive?.OpenSubKey(sub, writable: false))
+                        exists = key != null;
+                }
+                catch { }
+
+                Log(exists ? $"  [✔] OK: {path}" : $"  [✘] THIẾU: {path}");
+                if (!exists) allOk = false;
+            }
+
+            var L = LangManager.L;
+            Log(allOk ? L.Get("form3.integrity.ok") : L.Get("form3.integrity.warn"));
+            Log("───────────────────────────────────────────────────");
         }
 
         private static void DeleteValue(DeepResult r)
@@ -353,7 +410,7 @@ namespace frm_HIS_uninstaller_tool
             btnCheckAll.Enabled   = !scanning;
             btnUncheckAll.Enabled = !scanning;
             progressDeep.Style    = scanning ? ProgressBarStyle.Marquee : ProgressBarStyle.Blocks;
-            lblDeepCount.Text     = scanning ? "Đang quét..." : lblDeepCount.Text;
+            lblDeepCount.Text     = scanning ? LangManager.L.Get("form3.scan.running") : lblDeepCount.Text;
         }
 
         private static bool IsSafeToDelete(DeepResult r) => GetRiskLevel(r) == RiskLevel.Safe;

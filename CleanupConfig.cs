@@ -12,6 +12,7 @@ namespace frm_HIS_uninstaller_tool
     internal class CleanupConfig
     {
         // ── Danh sách cấu hình ─────────────────────────────────────────────
+        public string   Language             { get; private set; }
         public string[] FileScanRoots        { get; private set; }
         public string[] DriverStoreRoots     { get; private set; }
         public string[] RegistryKeywords     { get; private set; }
@@ -50,6 +51,7 @@ namespace frm_HIS_uninstaller_tool
 
         private static CleanupConfig Parse(XmlDocument doc) => new CleanupConfig
         {
+            Language             = doc.SelectSingleNode("//Language")?.InnerText?.Trim() ?? "vi",
             FileScanRoots        = GetTexts(doc, "//FileScanRoots/Path"),
             DriverStoreRoots     = GetTexts(doc, "//DriverStoreRoots/Path"),
             RegistryKeywords     = GetTexts(doc, "//RegistryKeywords/Keyword"),
@@ -87,6 +89,7 @@ namespace frm_HIS_uninstaller_tool
 
             return new CleanupConfig
             {
+                Language = "vi",
                 FileScanRoots = new[]
                 {
                     @"C:\Program Files\Huorong",

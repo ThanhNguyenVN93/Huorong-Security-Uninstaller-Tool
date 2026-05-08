@@ -73,8 +73,20 @@ namespace frm_HIS_uninstaller_tool
                 return;
             }
 
+            ApplyLanguage();
             CheckHuorong();
             UpdateOSInfo();
+        }
+
+        private void ApplyLanguage()
+        {
+            var L = LangManager.L;
+            this.Text              = L.Get("form1.title");
+            groupBox1.Text         = L.Get("form1.group.uninstaller");
+            groupBox2.Text         = L.Get("form1.group.sysinfo");
+            groupBox3.Text         = L.Get("form1.group.progress");
+            btnunistaller.Text     = L.Get("form1.btn.uninstall");
+            lblstatus.Text         = L.Get("form1.status.idle");
         }
 
         // ── Tìm đường dẫn uninstaller ─────────────────────────────────────
@@ -86,14 +98,15 @@ namespace frm_HIS_uninstaller_tool
                 ?? GetUninstallString(
                 @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\HuorongSysdiag", use64: false);
 
+            var L = LangManager.L;
             if (result != null)
             {
-                label1.Text = "Đã tìm thấy";
+                label1.Text = L.Get("form1.label.found");
                 txtunipath.Text = result;
             }
             else
             {
-                label1.Text = "Không tồn tại trên hệ thống";
+                label1.Text = L.Get("form1.label.notfound");
                 txtunipath.Text = "Not Found";
                 btnunistaller.Enabled = false;
             }
@@ -139,10 +152,11 @@ namespace frm_HIS_uninstaller_tool
 
         private void btnunistaller_Click(object sender, EventArgs e)
         {
+            var L = LangManager.L;
             string path = txtunipath.Text?.Trim();
             if (string.IsNullOrEmpty(path) || path == "Not Found")
             {
-                MessageBox.Show("Không tìm thấy đường dẫn uninstaller.", "Lỗi",
+                MessageBox.Show(L.Get("form1.dlg.nopath"), L.Get("form1.dlg.nopath.title"),
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -151,7 +165,7 @@ namespace frm_HIS_uninstaller_tool
             txtprocess.Clear();
             progressBar1.Style = ProgressBarStyle.Marquee;
             progressBar1.MarqueeAnimationSpeed = 25;
-            lblstatus.Text = "Đang gỡ cài đặt...";
+            lblstatus.Text = L.Get("form1.status.uninstalling");
             lblstatus.ForeColor = Color.DarkOrange;
 
             AppendLog("══════════════════════════════════════");
@@ -245,18 +259,18 @@ namespace frm_HIS_uninstaller_tool
         {
             StopTimers();
 
+            var L = LangManager.L;
             progressBar1.Style = ProgressBarStyle.Blocks;
             progressBar1.Value = 100;
-            lblstatus.Text = "Hoàn tất!";
+            lblstatus.Text = L.Get("form1.status.done");
             lblstatus.ForeColor = Color.Green;
             AppendLog("✔  Gỡ cài đặt hoàn tất.");
 
             SetStartupAfterReboot();
             AppendLog("[i] Công cụ dọn dẹp sẽ tự chạy sau khi reboot.");
 
-            MessageBox.Show(
-                "Gỡ cài đặt thành công!\n\nCông cụ dọn dẹp sẽ tự chạy sau khi bạn khởi động lại.\nVui lòng chọn Reboot trên màn hình Huorong.",
-                "Hoàn tất", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(L.Get("form1.dlg.complete"),
+                L.Get("form1.dlg.complete.title"), MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void StopTimers()
@@ -269,7 +283,7 @@ namespace frm_HIS_uninstaller_tool
         {
             progressBar1.Style = ProgressBarStyle.Blocks;
             progressBar1.Value = 0;
-            lblstatus.Text = "Lỗi";
+            lblstatus.Text = LangManager.L.Get("form1.status.error");
             lblstatus.ForeColor = Color.Red;
             btnunistaller.Enabled = true;
         }

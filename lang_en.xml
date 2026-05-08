@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<strings lang="en">
+
+  <!-- Form1 -->
+  <string key="form1.title">HIS Uninstaller Tool</string>
+  <string key="form1.group.uninstaller">Huorong Uninstaller</string>
+  <string key="form1.group.sysinfo">System Information</string>
+  <string key="form1.group.progress">Progress</string>
+  <string key="form1.btn.uninstall">Uninstall</string>
+  <string key="form1.status.idle">Waiting...</string>
+  <string key="form1.status.uninstalling">Uninstalling...</string>
+  <string key="form1.status.done">Complete!</string>
+  <string key="form1.status.error">Error</string>
+  <string key="form1.label.found">Found</string>
+  <string key="form1.label.notfound">Not installed on this system</string>
+  <string key="form1.dlg.nopath">Uninstaller path not found.</string>
+  <string key="form1.dlg.nopath.title">Error</string>
+  <string key="form1.dlg.complete">Uninstallation successful!
+
+The cleanup tool will run automatically after you restart.
+Please select Reboot on the Huorong screen.</string>
+  <string key="form1.dlg.complete.title">Complete</string>
+
+  <!-- Form2 -->
+  <string key="form2.title">HIS Cleanup Tool</string>
+  <string key="form2.maintitle">HIS Cleanup Tool</string>
+  <string key="form2.subtitle">Scan and remove leftover files/registry after uninstalling Huorong</string>
+  <string key="form2.hdr.files">📁  Leftover Files / Folders</string>
+  <string key="form2.hdr.registry">🔑  Leftover Registry Entries</string>
+  <string key="form2.warn.backup">⚠  System registry will be backed up to Desktop before deletion</string>
+  <string key="form2.btn.deletefile">🗑  Delete Selected</string>
+  <string key="form2.btn.deletereg">💾  Backup &amp; Delete Selected</string>
+  <string key="form2.btn.deepscan">🔎  Deep Scan...</string>
+  <string key="form2.btn.close">Close</string>
+  <string key="form2.dlg.nosel">No items selected.</string>
+  <string key="form2.dlg.confirmfile">Huorong services will be stopped, then {0} items will be deleted.
+This cannot be undone!
+Continue?</string>
+  <string key="form2.dlg.confirmfile.title">Confirm Delete</string>
+  <string key="form2.dlg.confirmreg">System registry will be backed up, then {0} items will be deleted.
+Continue?</string>
+  <string key="form2.dlg.confirmreg.title">Confirm</string>
+  <string key="form2.dlg.done">Backed up to:
+{0}
+
+Deleted: {1} successful, {2} failed.
+
+Report saved to:
+{3}</string>
+  <string key="form2.dlg.done.title">Complete</string>
+  <string key="form2.dlg.wsearch">Windows Search entries were removed — WSearch service will be restarted to rebuild the index.</string>
+  <string key="form2.dlg.wsearch.title">Windows Search</string>
+
+  <!-- Form3 -->
+  <string key="form3.title">Deep Scan — Find data values containing Huorong</string>
+  <string key="form3.hdr.title">🔎  Deep Scan — Search in data values</string>
+  <string key="form3.subtitle">Search "Huorong" / "火绒" in all values under HKLM\SOFTWARE, HKLM\SYSTEM, HKCU</string>
+  <string key="form3.btn.scan">🔍  Start Scan</string>
+  <string key="form3.btn.stop">■ Stop</string>
+  <string key="form3.btn.checkall">✔ Check All</string>
+  <string key="form3.btn.uncheckall">✘ Uncheck All</string>
+  <string key="form3.btn.delete">💾  Backup &amp; Delete Selected</string>
+  <string key="form3.btn.close">Close</string>
+  <string key="form3.col.risk">Risk</string>
+  <string key="form3.col.key">Registry Key</string>
+  <string key="form3.col.name">Value Name</string>
+  <string key="form3.col.type">Type</string>
+  <string key="form3.col.data">Data (contains Huorong)</string>
+  <string key="form3.risk.safe">Safe</string>
+  <string key="form3.risk.warning">Warning</string>
+  <string key="form3.risk.dangerous">Dangerous</string>
+  <string key="form3.scan.notrun">Not scanned</string>
+  <string key="form3.scan.running">Scanning...</string>
+  <string key="form3.scan.found">{0} items found</string>
+  <string key="form3.dlg.nosel">No items selected.</string>
+  <string key="form3.dlg.confirm">Relevant registry keys will be backed up, then {0} data values will be deleted:
+
+  • Safe      : {1}
+  • Warning   : {2}
+  • Dangerous : {3}
+
+Continue?</string>
+  <string key="form3.dlg.confirm.title">Confirm Deep Delete</string>
+  <string key="form3.dlg.done">Deleted: {0} successful, {1} failed.
+
+Report saved to:
+{2}</string>
+  <string key="form3.dlg.done.title">Complete</string>
+  <string key="form3.integrity.ok">✅ Registry integrity verified — no issues detected.</string>
+  <string key="form3.integrity.warn">⚠ Some critical keys are missing — System Restore is recommended.</string>
+
+</strings>

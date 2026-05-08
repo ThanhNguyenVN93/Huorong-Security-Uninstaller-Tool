@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<strings lang="vi">
+
+  <!-- Form1 -->
+  <string key="form1.title">HIS Uninstaller Tool</string>
+  <string key="form1.group.uninstaller">Huorong Uninstaller</string>
+  <string key="form1.group.sysinfo">Thông tin hệ thống</string>
+  <string key="form1.group.progress">Tiến trình</string>
+  <string key="form1.btn.uninstall">Gỡ cài đặt</string>
+  <string key="form1.status.idle">Chờ...</string>
+  <string key="form1.status.uninstalling">Đang gỡ cài đặt...</string>
+  <string key="form1.status.done">Hoàn tất!</string>
+  <string key="form1.status.error">Lỗi</string>
+  <string key="form1.label.found">Đã tìm thấy</string>
+  <string key="form1.label.notfound">Không tồn tại trên hệ thống</string>
+  <string key="form1.dlg.nopath">Không tìm thấy đường dẫn uninstaller.</string>
+  <string key="form1.dlg.nopath.title">Lỗi</string>
+  <string key="form1.dlg.complete">Gỡ cài đặt thành công!
+
+Công cụ dọn dẹp sẽ tự chạy sau khi bạn khởi động lại.
+Vui lòng chọn Reboot trên màn hình Huorong.</string>
+  <string key="form1.dlg.complete.title">Hoàn tất</string>
+
+  <!-- Form2 -->
+  <string key="form2.title">HIS Cleanup Tool</string>
+  <string key="form2.maintitle">HIS Cleanup Tool</string>
+  <string key="form2.subtitle">Quét và dọn dẹp file/registry còn sót sau khi gỡ Huorong</string>
+  <string key="form2.hdr.files">📁  File / Thư mục còn sót</string>
+  <string key="form2.hdr.registry">🔑  Registry còn sót</string>
+  <string key="form2.warn.backup">⚠  Registry hệ thống sẽ được backup vào Desktop trước khi xóa</string>
+  <string key="form2.btn.deletefile">🗑  Xóa mục đã chọn</string>
+  <string key="form2.btn.deletereg">💾  Backup &amp; Xóa đã chọn</string>
+  <string key="form2.btn.deepscan">🔎  Deep Scan...</string>
+  <string key="form2.btn.close">Đóng</string>
+  <string key="form2.dlg.nosel">Chưa chọn mục nào.</string>
+  <string key="form2.dlg.confirmfile">Sẽ dừng service Huorong, sau đó xóa {0} mục.
+Không thể khôi phục!
+Tiếp tục?</string>
+  <string key="form2.dlg.confirmfile.title">Xác nhận xóa</string>
+  <string key="form2.dlg.confirmreg">Sẽ backup registry hệ thống trước, rồi xóa {0} mục.
+Tiếp tục?</string>
+  <string key="form2.dlg.confirmreg.title">Xác nhận</string>
+  <string key="form2.dlg.done">Đã backup vào:
+{0}
+
+Xóa: {1} thành công, {2} thất bại.
+
+Báo cáo đã lưu tại:
+{3}</string>
+  <string key="form2.dlg.done.title">Hoàn tất</string>
+  <string key="form2.dlg.wsearch">Đã xóa mục Windows Search — dịch vụ WSearch sẽ được khởi động lại để cập nhật chỉ mục.</string>
+  <string key="form2.dlg.wsearch.title">Windows Search</string>
+
+  <!-- Form3 -->
+  <string key="form3.title">Deep Scan — Tìm data value chứa Huorong</string>
+  <string key="form3.hdr.title">🔎  Deep Scan — Tìm trong data value</string>
+  <string key="form3.subtitle">Quét "Huorong" / "火绒" trong data của mọi value thuộc HKLM\SOFTWARE, HKLM\SYSTEM, HKCU</string>
+  <string key="form3.btn.scan">🔍  Bắt đầu quét</string>
+  <string key="form3.btn.stop">■ Dừng</string>
+  <string key="form3.btn.checkall">✔ Chọn tất cả</string>
+  <string key="form3.btn.uncheckall">✘ Bỏ chọn tất</string>
+  <string key="form3.btn.delete">💾  Backup &amp; Xóa đã chọn</string>
+  <string key="form3.btn.close">Đóng</string>
+  <string key="form3.col.risk">Mức độ</string>
+  <string key="form3.col.key">Registry Key</string>
+  <string key="form3.col.name">Value Name</string>
+  <string key="form3.col.type">Type</string>
+  <string key="form3.col.data">Data (chứa Huorong)</string>
+  <string key="form3.risk.safe">An toàn</string>
+  <string key="form3.risk.warning">Cảnh báo</string>
+  <string key="form3.risk.dangerous">Nguy hiểm</string>
+  <string key="form3.scan.notrun">Chưa quét</string>
+  <string key="form3.scan.running">Đang quét...</string>
+  <string key="form3.scan.found">{0} mục tìm thấy</string>
+  <string key="form3.dlg.nosel">Chưa chọn mục nào.</string>
+  <string key="form3.dlg.confirm">Sẽ backup registry liên quan trước, rồi xóa {0} data value:
+
+  • An toàn   : {1}
+  • Cảnh báo  : {2}
+  • Nguy hiểm : {3}
+
+Tiếp tục?</string>
+  <string key="form3.dlg.confirm.title">Xác nhận Deep Delete</string>
+  <string key="form3.dlg.done">Xóa: {0} thành công, {1} thất bại.
+
+Báo cáo đã lưu tại:
+{2}</string>
+  <string key="form3.dlg.done.title">Hoàn tất</string>
+  <string key="form3.integrity.ok">✅ Registry toàn vẹn — không phát hiện vấn đề.</string>
+  <string key="form3.integrity.warn">⚠ Một số key quan trọng bị thiếu — khuyến nghị chạy System Restore.</string>
+
+</strings>
