@@ -27,6 +27,8 @@ namespace frm_HIS_uninstaller_tool
         private void Form2_Load(object sender, EventArgs e)
         {
             ApplyLanguage();
+            var donateImg = ResourceHelper.LoadImage("donate.jpg");
+            if (donateImg != null) pbDonate.Image = donateImg;
             DeleteStartupTask();
             Log("Form2 khởi động — tự động quét...");
             ScanFiles();
@@ -792,6 +794,12 @@ namespace frm_HIS_uninstaller_tool
         {
             using (Form3 f3 = new Form3())
                 f3.ShowDialog(this);
+        }
+
+        private void pbDonate_Click(object sender, EventArgs e)
+        {
+            using (Form4 f4 = new Form4())
+                f4.ShowDialog(this);
         }
 
         private void btnClose_Click(object sender, EventArgs e) => Application.Exit();

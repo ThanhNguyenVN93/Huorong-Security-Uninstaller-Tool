@@ -89,4 +89,15 @@ Báo cáo đã lưu tại:
   <string key="form3.integrity.ok">✅ Registry toàn vẹn — không phát hiện vấn đề.</string>
   <string key="form3.integrity.warn">⚠ Một số key quan trọng bị thiếu — khuyến nghị chạy System Restore.</string>
 
+  <!-- Form1 extras -->
+  <string key="form1.tooltip.donate">Donate</string>
+
+  <!-- Form4 -->
+  <string key="form4.title">Donate</string>
+  <string key="form4.maintitle">Donate</string>
+  <string key="form4.subtitle">Ủng hộ tác giả</string>
+  <string key="form4.label.tcb">Techcombank (TCB)</string>
+  <string key="form4.label.momo">MoMo</string>
+  <string key="form4.btn.close">Đóng</string>
+
 </strings>

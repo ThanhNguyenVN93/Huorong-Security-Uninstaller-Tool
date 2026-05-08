@@ -36,6 +36,7 @@ namespace frm_HIS_uninstaller_tool
                 System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
             string configPath = Path.Combine(dir, "cleanup_config.xml");
 
+            // External file first (allows user to override settings)
             if (File.Exists(configPath))
             {
                 try
@@ -44,8 +45,17 @@ namespace frm_HIS_uninstaller_tool
                     doc.Load(configPath);
                     return Parse(doc);
                 }
-                catch { /* XML lỗi → dùng default */ }
+                catch { }
             }
+
+            // Embedded resource fallback
+            XmlDocument embedded = ResourceHelper.LoadXml("cleanup_config.xml");
+            if (embedded != null)
+            {
+                try { return Parse(embedded); }
+                catch { }
+            }
+
             return Default();
         }
 
@@ -89,7 +99,7 @@ namespace frm_HIS_uninstaller_tool
 
             return new CleanupConfig
             {
-                Language = "vi",
+                Language = "en",
                 FileScanRoots = new[]
                 {
                     @"C:\Program Files\Huorong",

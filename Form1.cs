@@ -76,6 +76,8 @@ namespace frm_HIS_uninstaller_tool
             ApplyLanguage();
             CheckHuorong();
             UpdateOSInfo();
+            var donateImg = ResourceHelper.LoadImage("donate.jpg");
+            if (donateImg != null) pbDonate.Image = donateImg;
         }
 
         private void ApplyLanguage()
@@ -87,6 +89,24 @@ namespace frm_HIS_uninstaller_tool
             groupBox3.Text         = L.Get("form1.group.progress");
             btnunistaller.Text     = L.Get("form1.btn.uninstall");
             lblstatus.Text         = L.Get("form1.status.idle");
+            string cur = LangManager.OverrideLanguage ?? CleanupConfig.Instance.Language;
+            btnLang.Text           = cur == "vi" ? "VI | EN" : "EN | VI";
+            toolTip1.SetToolTip(pbDonate, L.Get("form1.tooltip.donate"));
+        }
+
+        private void btnLang_Click(object sender, EventArgs e)
+        {
+            string cur = LangManager.OverrideLanguage ?? CleanupConfig.Instance.Language;
+            LangManager.OverrideLanguage = cur == "en" ? "vi" : "en";
+            LangManager.Reset();
+            ApplyLanguage();
+            CheckHuorong();
+        }
+
+        private void pbDonate_Click(object sender, EventArgs e)
+        {
+            using (Form4 f4 = new Form4())
+                f4.ShowDialog(this);
         }
 
         // ── Tìm đường dẫn uninstaller ─────────────────────────────────────

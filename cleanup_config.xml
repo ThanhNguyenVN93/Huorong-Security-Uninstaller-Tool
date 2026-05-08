@@ -9,7 +9,7 @@
 <CleanupConfig>
 
   <!-- Ngôn ngữ giao diện: "vi" (Tiếng Việt) hoặc "en" (English) -->
-  <Language>vi</Language>
+  <Language>en</Language>
 
   <!-- Thư mục / file cần quét và xóa -->
   <FileScanRoots>

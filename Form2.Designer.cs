@@ -14,8 +14,10 @@ namespace frm_HIS_uninstaller_tool
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form2));
             this.pnlHeader = new System.Windows.Forms.Panel();
+            this.pbDonate  = new System.Windows.Forms.PictureBox();
             this.lblSubtitle = new System.Windows.Forms.Label();
             this.lblTitle = new System.Windows.Forms.Label();
             this.tblMain = new System.Windows.Forms.TableLayoutPanel();
@@ -43,6 +45,7 @@ namespace frm_HIS_uninstaller_tool
             this.pnlBottom = new System.Windows.Forms.Panel();
             this.txtLog = new System.Windows.Forms.RichTextBox();
             this.btnClose = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.pbDonate)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.tblMain.SuspendLayout();
             this.pnlFiles.SuspendLayout();
@@ -57,6 +60,7 @@ namespace frm_HIS_uninstaller_tool
             // pnlHeader
             // 
             this.pnlHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(90)))), ((int)(((byte)(160)))));
+            this.pnlHeader.Controls.Add(this.pbDonate);
             this.pnlHeader.Controls.Add(this.lblSubtitle);
             this.pnlHeader.Controls.Add(this.lblTitle);
             this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
@@ -78,7 +82,7 @@ namespace frm_HIS_uninstaller_tool
             this.lblSubtitle.Text = "Quét và dọn dẹp file/registry còn sót sau khi gỡ Huorong";
             // 
             // lblTitle
-            // 
+            //
             this.lblTitle.AutoSize = true;
             this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.lblTitle.ForeColor = System.Drawing.Color.White;
@@ -87,7 +91,19 @@ namespace frm_HIS_uninstaller_tool
             this.lblTitle.Size = new System.Drawing.Size(165, 25);
             this.lblTitle.TabIndex = 1;
             this.lblTitle.Text = "HIS Cleanup Tool";
-            // 
+            //
+            // pbDonate
+            //
+            this.pbDonate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.pbDonate.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pbDonate.Location = new System.Drawing.Point(700, 16);
+            this.pbDonate.Name = "pbDonate";
+            this.pbDonate.Size = new System.Drawing.Size(30, 30);
+            this.pbDonate.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pbDonate.TabIndex = 2;
+            this.pbDonate.TabStop = false;
+            this.pbDonate.Click += new System.EventHandler(this.pbDonate_Click);
+            //
             // tblMain
             // 
             this.tblMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(200)))));
@@ -409,6 +425,7 @@ namespace frm_HIS_uninstaller_tool
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "HIS Cleanup Tool";
             this.Load += new System.EventHandler(this.Form2_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.pbDonate)).EndInit();
             this.pnlHeader.ResumeLayout(false);
             this.pnlHeader.PerformLayout();
             this.tblMain.ResumeLayout(false);
@@ -428,6 +445,7 @@ namespace frm_HIS_uninstaller_tool
         #endregion
 
         private System.Windows.Forms.Panel            pnlHeader;
+        private System.Windows.Forms.PictureBox       pbDonate;
         private System.Windows.Forms.Label            lblTitle, lblSubtitle;
         private System.Windows.Forms.TableLayoutPanel tblMain;
         private System.Windows.Forms.Panel            pnlFiles, pnlFileTop, pnlFileBtns;

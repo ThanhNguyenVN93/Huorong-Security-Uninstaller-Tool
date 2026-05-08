@@ -37,7 +37,12 @@ namespace frm_HIS_uninstaller_tool
 
         public Form3() => InitializeComponent();
 
-        private void Form3_Load(object sender, EventArgs e) => ApplyLanguage();
+        private void Form3_Load(object sender, EventArgs e)
+        {
+            ApplyLanguage();
+            var donateImg = ResourceHelper.LoadImage("donate.jpg");
+            if (donateImg != null) pbDonate.Image = donateImg;
+        }
 
         private void ApplyLanguage()
         {
@@ -400,6 +405,12 @@ namespace frm_HIS_uninstaller_tool
         {
             _cts?.Cancel();
             this.Close();
+        }
+
+        private void pbDonate_Click(object sender, EventArgs e)
+        {
+            using (Form4 f4 = new Form4())
+                f4.ShowDialog(this);
         }
 
         private void SetScanState(bool scanning)

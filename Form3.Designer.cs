@@ -14,8 +14,10 @@ namespace frm_HIS_uninstaller_tool
 
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form3));
             this.pnlHeader = new System.Windows.Forms.Panel();
+            this.pbDonate  = new System.Windows.Forms.PictureBox();
             this.lblSubtitle3 = new System.Windows.Forms.Label();
             this.lblTitle3 = new System.Windows.Forms.Label();
             this.pnlToolbar = new System.Windows.Forms.Panel();
@@ -36,6 +38,7 @@ namespace frm_HIS_uninstaller_tool
             this.pnlBtnBar = new System.Windows.Forms.Panel();
             this.btnCloseDeep = new System.Windows.Forms.Button();
             this.btnDeleteDeep = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.pbDonate)).BeginInit();
             this.pnlHeader.SuspendLayout();
             this.pnlToolbar.SuspendLayout();
             this.pnlBottom.SuspendLayout();
@@ -45,6 +48,7 @@ namespace frm_HIS_uninstaller_tool
             // pnlHeader
             // 
             this.pnlHeader.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(20)))), ((int)(((byte)(70)))), ((int)(((byte)(140)))));
+            this.pnlHeader.Controls.Add(this.pbDonate);
             this.pnlHeader.Controls.Add(this.lblSubtitle3);
             this.pnlHeader.Controls.Add(this.lblTitle3);
             this.pnlHeader.Dock = System.Windows.Forms.DockStyle.Top;
@@ -67,7 +71,7 @@ namespace frm_HIS_uninstaller_tool
     "HKCU, HKU";
             // 
             // lblTitle3
-            // 
+            //
             this.lblTitle3.AutoSize = true;
             this.lblTitle3.Font = new System.Drawing.Font("Segoe UI", 13F, System.Drawing.FontStyle.Bold);
             this.lblTitle3.ForeColor = System.Drawing.Color.White;
@@ -76,7 +80,19 @@ namespace frm_HIS_uninstaller_tool
             this.lblTitle3.Size = new System.Drawing.Size(343, 25);
             this.lblTitle3.TabIndex = 1;
             this.lblTitle3.Text = "🔎  Deep Scan — Tìm trong data value";
-            // 
+            //
+            // pbDonate
+            //
+            this.pbDonate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.pbDonate.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pbDonate.Location = new System.Drawing.Point(840, 14);
+            this.pbDonate.Name = "pbDonate";
+            this.pbDonate.Size = new System.Drawing.Size(30, 30);
+            this.pbDonate.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pbDonate.TabIndex = 2;
+            this.pbDonate.TabStop = false;
+            this.pbDonate.Click += new System.EventHandler(this.pbDonate_Click);
+            //
             // pnlToolbar
             // 
             this.pnlToolbar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(247)))), ((int)(((byte)(250)))));
@@ -317,6 +333,7 @@ namespace frm_HIS_uninstaller_tool
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Deep Scan — Tìm data value chứa Huorong";
             this.Load += new System.EventHandler(this.Form3_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.pbDonate)).EndInit();
             this.pnlHeader.ResumeLayout(false);
             this.pnlHeader.PerformLayout();
             this.pnlToolbar.ResumeLayout(false);
@@ -330,6 +347,7 @@ namespace frm_HIS_uninstaller_tool
         #endregion
 
         private System.Windows.Forms.Panel       pnlHeader;
+        private System.Windows.Forms.PictureBox  pbDonate;
         private System.Windows.Forms.Label       lblTitle3, lblSubtitle3;
         private System.Windows.Forms.Panel       pnlToolbar;
         private System.Windows.Forms.Button      btnDeepScan, btnStopScan, btnCheckAll, btnUncheckAll;

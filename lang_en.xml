@@ -89,4 +89,15 @@ Report saved to:
   <string key="form3.integrity.ok">✅ Registry integrity verified — no issues detected.</string>
   <string key="form3.integrity.warn">⚠ Some critical keys are missing — System Restore is recommended.</string>
 
+  <!-- Form1 extras -->
+  <string key="form1.tooltip.donate">Donate</string>
+
+  <!-- Form4 -->
+  <string key="form4.title">Donate</string>
+  <string key="form4.maintitle">Donate</string>
+  <string key="form4.subtitle">Support the developer</string>
+  <string key="form4.label.tcb">Techcombank (TCB)</string>
+  <string key="form4.label.momo">MoMo</string>
+  <string key="form4.btn.close">Close</string>
+
 </strings>
